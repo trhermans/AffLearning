@@ -32,33 +32,41 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef BgSubtract_hpp_DEFINED
-#define BgSubtract_hpp_DEFINED
-
+#include <ros/ros.h>
+#include "sensor_msgs/Image.h"
+#include "image_transport/image_transport.h"
+#include "cv_bridge/CvBridge.h"
 #include <opencv/cv.h>
-#include <opencv/cxcore.hpp>
-#include <opencv/cv.hpp>
 
 /**
- * @file   BgSubtract.hpp
+ * @file   bg_subtract_node.cpp
  * @author Tucker Hermans <thermans@cc.gatech.edu>
- * @date   Mon Feb 15 10:10:36 2010
+ * @date   Tue Feb 16 19:17:17 2010
  *
- * @brief Class to perform background subtraction
+ * @brief  ROS node to provide background subtraction on an image stream
+ *
  *
  */
-class BgSubtract
+
+class BgSubtractNode
 {
 public:
-    BgSubtract(cv::Mat& bg_mg);
-    cv::Mat subtract(cv::Mat& fg_img, uchar thresh = 0);
-    cv::Mat getContours(cv::Mat& fg_img, uchar thresh = 0);
-    void updateBgImage(cv::Mat& bg_img);
+    BgSubtractNode(ros::NodeHandle &n) : n_(n), it_(n) {
+        image_sub_ = it_.subscribe("image_topic", 1,
+                                   &BgSubtractNode::imageCallBack, this);
+    }
+    ~BgSubtractNode() {}
 
-private:
-    BgSubtract() {}
+    void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr) {
+        IplImage* fg_img = NULL;
+        try {
+            fg_img = bridge_.imgMsgToCv(msg_ptr, "bgr8");
+        }
+    }
 
 protected:
-    cv::Mat bg_img_;
-};
-#endif // BgSubtract_hpp_DEFINED
+    ros::NodeHandle n_;
+    image_transport::ImageTransport it_;
+    image_transport::Subscriber image_sub_;
+    sensor_msgs::CvBridge bridge_;
+}
