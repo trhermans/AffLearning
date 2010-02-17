@@ -37,6 +37,7 @@
 #include "image_transport/image_transport.h"
 #include "cv_bridge/CvBridge.h"
 #include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 /**
  * @file   bg_subtract_node.cpp
@@ -45,23 +46,38 @@
  *
  * @brief  ROS node to provide background subtraction on an image stream
  *
- *
  */
-
 class BgSubtractNode
 {
 public:
-    BgSubtractNode(ros::NodeHandle &n) : n_(n), it_(n) {
+    BgSubtractNode(ros::NodeHandle &n) :
+            n_(n), it_(n)
+    {
         image_sub_ = it_.subscribe("image_topic", 1,
-                                   &BgSubtractNode::imageCallBack, this);
+                                   &BgSubtractNode::imageCallback, this);
+        ROS_INFO("Starting to run stuff");
+        cv::namedWindow("Test");
     }
-    ~BgSubtractNode() {}
+    ~BgSubtractNode()
+    {
+    }
 
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr) {
+    void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
+    {
         IplImage* fg_img = NULL;
-        try {
-            fg_img = bridge_.imgMsgToCv(msg_ptr, "bgr8");
+        ROS_INFO("Called back!\n");
+        try
+        {
+            fg_img = bridge_.imgMsgToCv(msg_ptr);
         }
+        catch (sensor_msgs::CvBridgeException error)
+        {
+            ROS_ERROR("Error converting ROS image to IplIMage");
+        }
+
+        cv::Mat fg_mat = fg_img;
+        cv::imshow("Test", fg_mat);
+        cv::waitKey(2);
     }
 
 protected:
@@ -69,4 +85,12 @@ protected:
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
     sensor_msgs::CvBridge bridge_;
+};
+
+int main(int argc, char ** argv)
+{
+    ros::init(argc, argv, "bg_subtract");
+    ros::NodeHandle n;
+    BgSubtractNode bgs_node(n);
+    ros::spin();
 }
