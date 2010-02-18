@@ -32,18 +32,30 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "BgSubtract.hpp"
+#include "bg_subtract.h"
 #include <vector>
+#include <opencv/highgui.h>
 
 using namespace cv;
 using namespace std;
+
+/*
+ * BgSubtract Class
+ */
+
 
 /**
  * Initialize the class with a background image
  *
  * @param _bgImg Background image for the class
  */
-BgSubtract::BgSubtract(Mat& bg_img): bg_img_(bg_img)
+BgSubtract::BgSubtract(Mat bg_img) :
+    has_bg_img_(true), bg_img_(bg_img)
+{
+}
+
+BgSubtract::BgSubtract() :
+    has_bg_img_(false)
 {
 }
 
@@ -57,7 +69,7 @@ BgSubtract::BgSubtract(Mat& bg_img): bg_img_(bg_img)
  *
  * @return the foreground image without the background
  */
-Mat BgSubtract::subtract(Mat& fg_img, uchar thresh)
+Mat BgSubtract::subtract(Mat fg_img, int thresh)
 {
     // Determine which pixels are different
     Mat diff_img = abs(fg_img - bg_img_);
@@ -68,17 +80,21 @@ Mat BgSubtract::subtract(Mat& fg_img, uchar thresh)
     split(diff_img, diff_planes);
     split(fg_img, fg_planes);
 
-    for(int y = 0; y < diff.rows; ++y)
+    for(int y = 0; y < diff_img.rows; ++y)
     {
-        for(int x = 0; x < diff.cols; ++x)
+        for(int x = 0; x < diff_img.cols; ++x)
         {
-            if(diff_planes[0].at<uchar>(y,x) > thresh ||
-               diff_planes[1].at<uchar>(y,x) > thresh ||
-               diff_planes[2].at<uchar>(y,x) > thresh)
+            if(diff_planes[0].at<uchar>(y,x) > (uchar) thresh &&
+               diff_planes[1].at<uchar>(y,x) > (uchar) thresh &&
+               diff_planes[2].at<uchar>(y,x) > (uchar) thresh)
             {
                 diff_planes[0].at<uchar>(y,x) = fg_planes[0].at<uchar>(y,x);
                 diff_planes[1].at<uchar>(y,x) = fg_planes[1].at<uchar>(y,x);
                 diff_planes[2].at<uchar>(y,x) = fg_planes[2].at<uchar>(y,x);
+            } else {
+                diff_planes[0].at<uchar>(y,x) = (uchar) 0;
+                diff_planes[1].at<uchar>(y,x) = (uchar) 0;
+                diff_planes[2].at<uchar>(y,x) = (uchar) 0;
             }
         }
     }
@@ -87,7 +103,16 @@ Mat BgSubtract::subtract(Mat& fg_img, uchar thresh)
     return diff_img;
 }
 
-Mat BgSubtract::getContours(Mat& fg_img, uchar thresh)
+/**
+ * Perform background subtraction and return the most recent image with the
+ * contours of the foreground objects outlined in green!
+ *
+ * @param fg_img Current image
+ * @param thresh bg subtract threshold value
+ *
+ * @return Input image with contours drawn on it
+ */
+Mat BgSubtract::getContours(Mat fg_img, int thresh)
 {
     Mat diff_img = subtract(fg_img, thresh);
     Mat bw_diff(diff_img.size(), CV_8UC1);
@@ -102,7 +127,73 @@ Mat BgSubtract::getContours(Mat& fg_img, uchar thresh)
     return fg_img;
 }
 
-void BgSubtract::updateBgImage(cv::Mat& bg_img)
+/**
+ * Update the background image for bg subtraction.
+ *
+ * @param bg_img The new background image.
+ */
+void BgSubtract::updateBgImage(Mat bg_img)
 {
+    has_bg_img_ = true;
     bg_img_ = bg_img;
+}
+
+Mat BgSubtract::removeBgImage()
+{
+    has_bg_img_ = false;
+    return bg_img_;
+}
+
+
+/*
+ * BgSubtractGUI Class
+ */
+
+const int BgSubtractGUI::MAX_THRESH = 255;
+const char BgSubtractGUI::CREATE_BG_KEY = 'c';
+const char BgSubtractGUI::ERASE_BG_KEY = 'e';
+
+BgSubtractGUI::BgSubtractGUI() :
+    thresh_(0)
+{
+    raiseDisplay();
+}
+
+BgSubtractGUI::BgSubtractGUI(Mat bg_img) :
+    bg_sub_(bg_img), thresh_(0)
+{
+    raiseDisplay();
+}
+
+void BgSubtractGUI:: raiseDisplay()
+{
+    namedWindow("Background Subtract");
+    createTrackbar("Threshold", "Background Subtract", &thresh_,
+                       MAX_THRESH);
+    namedWindow("Contours");
+}
+
+void BgSubtractGUI::updateDisplay(Mat update_img)
+{
+    if( bg_sub_.hasBackgroundImg() )
+    {
+        Mat to_display = bg_sub_.subtract(update_img, thresh_);
+        Mat to_display_2 = bg_sub_.getContours(update_img, thresh_);
+        imshow("Background Subtract", to_display);
+        imshow("Contours", to_display_2);
+    }
+    else
+    {
+        imshow("Background Subtract", update_img);
+    }
+    char c = cvWaitKey(3);
+
+    if (c == CREATE_BG_KEY)
+    {
+        bg_sub_.updateBgImage(update_img);
+    }
+    else if (c == ERASE_BG_KEY)
+    {
+        bg_sub_.removeBgImage();
+    }
 }

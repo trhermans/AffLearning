@@ -32,7 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "BgSubtract.h"
+#include "bg_subtract.h"
 #include <opencv/highgui.h>
 
 using namespace cv;
@@ -41,18 +41,15 @@ int main()
 {
     Mat bg_img = imread("testBg.png");
     Mat fg_img = imread("testFg.png");
-    namedWindow("Background");
-    imshow("Background", bg_img);
-
-    namedWindow("Foreground");
-    imshow("Foreground", fg_img);
-    waitKey();
+    namedWindow("FG img");
+    namedWindow("BG img");
+    imshow("FG img", fg_img);
+    imshow("BG img", bg_img);
 
     BgSubtract bg(bg_img);
+    BgSubtractGUI bgg(bg_img);
     Mat img_diff = bg.getContours(fg_img);
 
-    namedWindow("Diff");
-    imshow("Diff", img_diff);
-
+    bgg.updateDisplay(fg_img);
     waitKey();
 }

@@ -1,9 +1,8 @@
 <launch>
 
   <group ns="prosilica">
-    <include file="$(find prosilica_camera)/cam_settings.xml"/>
+    <include file="$(find bg_subtract)/cam_settings.xml"/>
     <param name="trigger_mode" type="str" value="streaming"/>
-    <param name="ip_address" type="str" value="169.254.207.201"/>
   </group>
 
     <node name="prosilica" pkg="prosilica_camera" type="prosilica_node" respawn="false" output="screen"/>

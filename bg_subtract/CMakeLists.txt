@@ -15,4 +15,4 @@ rosbuild_init()
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 # Include our src files
-rosbuild_add_executable(bg_subtract_node src/bg_subtract_node.cpp)
+rosbuild_add_executable(bg_subtract_node src/bg_subtract_node.cpp src/bg_subtract.h src/bg_subtract.cpp)

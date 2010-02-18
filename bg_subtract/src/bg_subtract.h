@@ -32,15 +32,15 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef BgSubtract_hpp_DEFINED
-#define BgSubtract_hpp_DEFINED
+#ifndef BgSubtract_h_DEFINED
+#define BgSubtract_h_DEFINED
 
 #include <opencv/cv.h>
 #include <opencv/cxcore.hpp>
 #include <opencv/cv.hpp>
 
 /**
- * @file   BgSubtract.hpp
+ * @file   bg_subtract.h
  * @author Tucker Hermans <thermans@cc.gatech.edu>
  * @date   Mon Feb 15 10:10:36 2010
  *
@@ -50,15 +50,36 @@
 class BgSubtract
 {
 public:
-    BgSubtract(cv::Mat& bg_mg);
-    cv::Mat subtract(cv::Mat& fg_img, uchar thresh = 0);
-    cv::Mat getContours(cv::Mat& fg_img, uchar thresh = 0);
-    void updateBgImage(cv::Mat& bg_img);
-
-private:
-    BgSubtract() {}
+    BgSubtract(cv::Mat bg_mg);
+    BgSubtract();
+    cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
+    cv::Mat getContours(cv::Mat fg_img, int thresh = 0);
+    void updateBgImage(cv::Mat bg_img);
+    cv::Mat removeBgImage();
+    bool hasBackgroundImg() { return has_bg_img_; }
 
 protected:
+    bool has_bg_img_;
     cv::Mat bg_img_;
 };
-#endif // BgSubtract_hpp_DEFINED
+
+class BgSubtractGUI
+{
+public:
+    BgSubtractGUI();
+    BgSubtractGUI(cv::Mat bg_img);
+    ~BgSubtractGUI() {}
+    void updateDisplay(cv::Mat update_img);
+
+protected:
+    BgSubtract bg_sub_;
+    int thresh_;
+    static const int MAX_THRESH;
+    static const char CREATE_BG_KEY;
+    static const char ERASE_BG_KEY;
+
+private:
+    void raiseDisplay();
+};
+
+#endif // BgSubtract_h_DEFINED
