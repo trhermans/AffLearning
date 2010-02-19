@@ -4,3 +4,4 @@ build/*
 /bg_subtract/bin/*
 /bg_subtract/build/*
 
+/bg_subtract/src/bg_test

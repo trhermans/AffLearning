@@ -39,17 +39,17 @@ using namespace cv;
 
 int main()
 {
-    Mat bg_img = imread("testBg.png");
-    Mat fg_img = imread("testFg.png");
-    namedWindow("FG img");
+    Mat bg_img = imread("test_bg.png");
+    Mat fg_img1 = imread("test_fg1.png");
+    Mat fg_img2 = imread("test_fg2.png");
     namedWindow("BG img");
-    imshow("FG img", fg_img);
     imshow("BG img", bg_img);
 
     BgSubtract bg(bg_img);
     BgSubtractGUI bgg(bg_img);
-    Mat img_diff = bg.getContours(fg_img);
 
-    bgg.updateDisplay(fg_img);
+    bgg.updateDisplay(fg_img1);
+    waitKey();
+    bgg.updateDisplay(fg_img2);
     waitKey();
 }

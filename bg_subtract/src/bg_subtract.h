@@ -36,8 +36,7 @@
 #define BgSubtract_h_DEFINED
 
 #include <opencv/cv.h>
-#include <opencv/cxcore.hpp>
-#include <opencv/cv.hpp>
+#include <opencv/cxcore.h>
 
 /**
  * @file   bg_subtract.h
