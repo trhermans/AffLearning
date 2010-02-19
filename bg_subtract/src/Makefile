@@ -1,4 +1,4 @@
-C++ = g++-4.0
+C++ = c++
 
 C++-OPT = -O3 -DNDEBUG
 C++-DEBUG = -g -O0
