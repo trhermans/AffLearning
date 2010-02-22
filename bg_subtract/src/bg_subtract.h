@@ -53,16 +53,19 @@ public:
     BgSubtract(cv::Mat bg_mg);
     BgSubtract();
     cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
-    cv::Mat findFGContours(cv::Mat fg_img, int thresh = 0);
+    cv::Mat findFGContours(cv::Mat fg_img, int thresh = 0, int min_size = 0);
     void updateBgImage(const cv::Mat bg_img);
     void removeBgImage();
     bool hasBackgroundImg() { return has_bg_img_; }
     std::vector<std::vector<cv::Point> > getContours() { return contours_; }
+    std::vector<cv::Moments> getContourMoments() { return contour_moments_; }
 
 protected:
     bool has_bg_img_;
     cv::Mat bg_img_;
     std::vector<std::vector<cv::Point> > contours_;
+    std::vector<cv::Moments> contour_moments_;
+    cv::Scalar contour_color_;
 };
 
 class BgSubtractGUI
@@ -75,10 +78,13 @@ public:
 
 protected:
     BgSubtract bg_sub_;
-    int thresh_;
-    static const int MAX_THRESH;
+    int diff_thresh_;
+    int min_contour_size_;
+    static const int MAX_DIFF_THRESH;
+    static const int MAX_MIN_SIZE;
     static const char CREATE_BG_KEY;
     static const char ERASE_BG_KEY;
+    static const char PRINT_CONTOUR_KEY;
 
 private:
     void raiseDisplay();
