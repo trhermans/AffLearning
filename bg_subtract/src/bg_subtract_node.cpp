@@ -74,7 +74,6 @@ public:
         }
 
         cv::Mat fg_mat = fg_img;
-        ROS_INFO("Updating display!");
         bg_gui_.updateDisplay(fg_mat);
     }
 

@@ -33,16 +33,14 @@
  *********************************************************************/
 
 #include "bg_subtract.h"
-#include <vector>
 #include <opencv/highgui.h>
 
 using namespace cv;
-using namespace std;
+using std::vector;
 
 /*
  * BgSubtract Class
  */
-
 
 /**
  * Initialize the class with a background image
@@ -58,7 +56,6 @@ BgSubtract::BgSubtract() :
     has_bg_img_(false)
 {
 }
-
 
 /**
  * Function performs background subtraction on a given image of items atop the
@@ -84,8 +81,8 @@ Mat BgSubtract::subtract(Mat fg_img, int thresh)
     {
         for(int x = 0; x < diff_img.cols; ++x)
         {
-            if(diff_planes[0].at<uchar>(y,x) > (uchar) thresh &&
-               diff_planes[1].at<uchar>(y,x) > (uchar) thresh &&
+            if(diff_planes[0].at<uchar>(y,x) > (uchar) thresh ||
+               diff_planes[1].at<uchar>(y,x) > (uchar) thresh ||
                diff_planes[2].at<uchar>(y,x) > (uchar) thresh)
             {
                 diff_planes[0].at<uchar>(y,x) = fg_planes[0].at<uchar>(y,x);
@@ -112,17 +109,17 @@ Mat BgSubtract::subtract(Mat fg_img, int thresh)
  *
  * @return Input image with contours drawn on it
  */
-Mat BgSubtract::getContours(Mat fg_img, int thresh)
+Mat BgSubtract::findFGContours(Mat fg_img, int thresh)
 {
     Mat diff_img = subtract(fg_img, thresh);
     Mat bw_diff(diff_img.size(), CV_8UC1);
     cvtColor(diff_img, bw_diff, CV_RGB2GRAY);
 
-    vector<vector<Point> > contours;
+    contours_.clear();
 
-    findContours(bw_diff, contours, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-    Scalar color(0, 255, 0);
-    drawContours(fg_img, contours, -1, color, 2);
+    findContours(bw_diff, contours_, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+    Scalar color(0, 0, 255);
+    drawContours(fg_img, contours_, -1, color, 2);
 
     return fg_img;
 }
@@ -132,18 +129,16 @@ Mat BgSubtract::getContours(Mat fg_img, int thresh)
  *
  * @param bg_img The new background image.
  */
-void BgSubtract::updateBgImage(Mat bg_img)
+void BgSubtract::updateBgImage(const Mat bg_img)
 {
+    bg_img.copyTo(bg_img_);
     has_bg_img_ = true;
-    bg_img_ = bg_img;
 }
 
-Mat BgSubtract::removeBgImage()
+void BgSubtract::removeBgImage()
 {
     has_bg_img_ = false;
-    return bg_img_;
 }
-
 
 /*
  * BgSubtractGUI Class
@@ -178,7 +173,7 @@ void BgSubtractGUI::updateDisplay(Mat update_img)
     if( bg_sub_.hasBackgroundImg() )
     {
         Mat to_display = bg_sub_.subtract(update_img, thresh_);
-        Mat to_display_2 = bg_sub_.getContours(update_img, thresh_);
+        Mat to_display_2 = bg_sub_.findFGContours(update_img, thresh_);
         imshow("Background Subtract", to_display);
         imshow("Contours", to_display_2);
     }

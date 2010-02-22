@@ -37,6 +37,7 @@
 
 #include <opencv/cv.h>
 #include <opencv/cxcore.h>
+#include <vector>
 
 /**
  * @file   bg_subtract.h
@@ -52,14 +53,16 @@ public:
     BgSubtract(cv::Mat bg_mg);
     BgSubtract();
     cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
-    cv::Mat getContours(cv::Mat fg_img, int thresh = 0);
-    void updateBgImage(cv::Mat bg_img);
-    cv::Mat removeBgImage();
+    cv::Mat findFGContours(cv::Mat fg_img, int thresh = 0);
+    void updateBgImage(const cv::Mat bg_img);
+    void removeBgImage();
     bool hasBackgroundImg() { return has_bg_img_; }
+    std::vector<std::vector<cv::Point> > getContours() { return contours_; }
 
 protected:
     bool has_bg_img_;
     cv::Mat bg_img_;
+    std::vector<std::vector<cv::Point> > contours_;
 };
 
 class BgSubtractGUI

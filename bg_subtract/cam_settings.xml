@@ -1,10 +1,10 @@
 <launch>
   <param name="auto_exposure" type="bool" value="False"/>
-  <param name="exposure" type="double" value="0.15"/>
+  <param name="exposure" type="double" value="0.045"/>
   <param name="auto_gain" type="bool" value="False"/>
   <param name="gain" type="int" value="0"/>
   <param name="auto_whitebalance" type="bool" value="False"/>
-  <param name="whitebalance_red" type="int" value="85"/>
-  <param name="whitebalance_blue" type="int" value="100"/>
+  <param name="whitebalance_red" type="int" value="171"/>
+  <param name="whitebalance_blue" type="int" value="177"/>
   <param name="frame_id" type="string" value="high_def_optical_frame"/>
 </launch>
