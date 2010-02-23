@@ -31,66 +31,25 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-
 #include <ros/ros.h>
-#include "sensor_msgs/Image.h"
-#include "image_transport/image_transport.h"
-#include "cv_bridge/CvBridge.h"
-#include <opencv/cv.h>
-#include "bg_subtract.h"
 
-/**
- * @file   bg_subtract_node.cpp
- * @author Tucker Hermans <thermans@cc.gatech.edu>
- * @date   Tue Feb 16 19:17:17 2010
- *
- * @brief  ROS node to provide background subtraction on an image stream
- *
- */
-class BgSubtractNode
+class OverheadTrackingNode
 {
   public:
-    BgSubtractNode(ros::NodeHandle &n) :
-            n_(n), it_(n)
+    OverheadTrackingNode(ros::NodeHandle &n) :
+            n_(n)
     {
-        image_sub_ = it_.subscribe("image_topic", 1,
-                                   &BgSubtractNode::imageCallback, this);
-    }
-
-    ~BgSubtractNode()
-    {
-    }
-
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
-    {
-        IplImage* fg_img = NULL;
-        try
-        {
-            fg_img = bridge_.imgMsgToCv(msg_ptr);
-        }
-        catch (sensor_msgs::CvBridgeException error)
-        {
-            ROS_ERROR("Error converting ROS image to IplImage");
-        }
-
-        cv::Mat fg_mat = fg_img;
-        bg_gui_.updateDisplay(fg_mat);
     }
 
   protected:
     ros::NodeHandle n_;
-    image_transport::ImageTransport it_;
-    image_transport::Subscriber image_sub_;
-    sensor_msgs::CvBridge bridge_;
-    BgSubtractGUI bg_gui_;
 };
-
 
 int main(int argc, char ** argv)
 {
-    ros::init(argc, argv, "bg_subtract");
+    ros::init(argc, argv, "overhead_tracking");
     ros::NodeHandle n;
-    BgSubtractNode bgs_node(n);
+    OverheadTrackingNode overhead_node(n);
     ros::spin();
 }
 

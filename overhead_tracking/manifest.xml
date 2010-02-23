@@ -1,0 +1,17 @@
+<package>
+  <description brief="overhead_tracking">
+
+     overhead_tracking
+
+  </description>
+  <author>Tucker Hermans</author>
+  <license>BSD</license>
+  <depend package="bg_subtract"/>
+  <depend package="roscpp"/>
+  <depend package="opencv2"/>
+  <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+

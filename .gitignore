@@ -1,7 +1,10 @@
-bgTest
-build/*
 *.png
-/bg_subtract/bin/*
-/bg_subtract/build/*
-
+*/bin/*
+*/build/*
+*/msg/cpp/*
+*/msg/java/*
+*/msg/lisp/*
+*/msg/oct/*
+*/src/*/msg/*
 /bg_subtract/src/bg_test
+/overhead_tracking/src/overhead_tracking/__init__.py

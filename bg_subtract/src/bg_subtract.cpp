@@ -34,7 +34,6 @@
 #include <ros/ros.h>
 #include "bg_subtract.h"
 #include <opencv/highgui.h>
-#include <iostream>
 
 using namespace cv;
 using std::vector;
