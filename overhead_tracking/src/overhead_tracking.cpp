@@ -32,15 +32,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 #include <opencv/highgui.h>
+#include "overhead_tracking.h"
 
 using namespace cv;
 using std::vector;
 
 // Constants
-const int BgSubtractGUI::MAX_MIN_SIZE = 500;
+const int OverheadTracking::MAX_MIN_SIZE = 500;
 
 OverheadTracking::OverheadTracking() :
-    min_contour_size(0)
+        min_contour_size_(0), center_color_(0,255,0), contour_color_(0,0,255)
 {
     raiseDisplay();
 }
@@ -62,7 +63,7 @@ void OverheadTracking::updateDisplay(Mat update_img,
     for (unsigned int i = 0; i < contours.size();)
     {
         double size = contourArea(contours[i]);
-        if (fabs(size) > min_size)
+        if (fabs(size) > min_contour_size_)
         {
             contour_moments_.push_back(moments(contours[i]));
             ++i;
@@ -78,11 +79,10 @@ void OverheadTracking::updateDisplay(Mat update_img,
     {
         Point center(contour_moments_[i].m10 / contour_moments_[i].m00,
                      contour_moments_[i].m01 / contour_moments_[i].m00);
-        Scalar s(0,255,0);
-        circle(fg_img, center, 4, s, 2);
+        circle(update_img, center, 4, center_color_, 2);
     }
 
-    drawContours(fg_img, contours, -1, contour_color_, 2);
+    drawContours(update_img, contours, -1, contour_color_, 2);
 
     // Now show our image
     imshow("Contours", update_img);

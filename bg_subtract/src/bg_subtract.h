@@ -62,7 +62,6 @@ public:
     // Getters and Setters
     bool hasBackgroundImg() { return has_bg_img_; }
     std::vector<std::vector<cv::Point> > getContours() { return contours_; }
-    std::vector<cv::Moments> getContourMoments() { return contour_moments_; }
 
 protected:
     bool has_bg_img_;

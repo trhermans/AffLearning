@@ -20,4 +20,4 @@ rosbuild_genmsg()
 #rosbuild_gensrv()
 
 # Include our src files
-rosbuild_add_executable(overhead_tracking_node src/overhead_tracking_node.cpp)
+rosbuild_add_executable(overhead_tracking_node src/overhead_tracking_node.cpp src/overhead_tracking.cpp src/overhead_tracking.h)

@@ -42,7 +42,7 @@ class OverheadTracking
 {
 public:
     OverheadTracking();
-    void updateDisplay(Mat update_img,
+    void updateDisplay(cv::Mat update_img,
                        std::vector<std::vector<cv::Point> > contours);
 private:
     void raiseDisplay();
@@ -52,6 +52,8 @@ protected:
     std::vector<std::vector<cv::Point> > contours_;
     int min_contour_size_;
     std::vector<cv::Moments> contour_moments_;
+    cv::Scalar center_color_;
+    cv::Scalar contour_color_;
 
 // Constants
 public:

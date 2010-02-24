@@ -146,7 +146,7 @@ const char BgSubtractGUI::CREATE_BG_KEY = 'c';
 const char BgSubtractGUI::ERASE_BG_KEY = 'e';
 
 BgSubtractGUI::BgSubtractGUI() :
-        diff_thresh_(0), min_contour_size_(0)
+        diff_thresh_(0)
 {
     raiseDisplay();
 }
