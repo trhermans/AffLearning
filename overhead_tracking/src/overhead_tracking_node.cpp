@@ -33,20 +33,29 @@
  *********************************************************************/
 #include <ros/ros.h>
 #include <opencv/cv.h>
-#include "sensor_msgs/Image.h"
-#include "image_transport/image_transport.h"
-#include "cv_bridge/CvBridge.h"
+#include <bg_subtract/ContourArray.h>
+#include <sensor_msgs/Image.h>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/CvBridge.h>
+
 #include "overhead_tracking.h"
 
 class OverheadTrackingNode
 {
   public:
+    // Constructors and Destructors
     OverheadTrackingNode(ros::NodeHandle &n) :
             n_(n), it_(n)
     {
-        // n.subscribe();
+        image_sub_ = it_.subscribe("image_topic", 1,
+                                   &OverheadTrackingNode::imageCallback, this);
+
+        contour_subscriber_ = n.subscribe("contours", 1,
+                                          &OverheadTrackingNode::
+                                          contourCallback, this);
     }
 
+    // Publish and Subscribe methods
     void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
     {
         IplImage* fg_img = NULL;
@@ -62,7 +71,15 @@ class OverheadTrackingNode
         current_img_ = fg_img;
     }
 
-    // void contourCallback(const );
+    /**
+     * Callback method for the contour subscriber.  Draws the contours to the
+     * display and extracts information from them.
+     *
+     * @param contour_msg most recent contours pushed to the topic
+     */
+    void contourCallback(const bg_subtract::ContourArrayConstPtr& contour_msg)
+    {
+    }
 
   protected:
     ros::NodeHandle n_;

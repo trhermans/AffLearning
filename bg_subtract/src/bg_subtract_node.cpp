@@ -66,6 +66,13 @@ class BgSubtractNode
     }
 
     // Publish and Subscribe methods
+
+    /**
+     * Callback method to the image transport subscriber.  Performs background
+     * subtraction on the incoming image and publishes the extracted contours.
+     *
+     * @param msg_ptr Most recent image off of the topic
+     */
     void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
     {
         // Convert from ROS image to CV image
