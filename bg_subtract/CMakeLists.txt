@@ -14,5 +14,9 @@ rosbuild_init()
 # Set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
+# Build messages
+rosbuild_genmsg()
+
 # Include our src files
 rosbuild_add_executable(bg_subtract_node src/bg_subtract_node.cpp src/bg_subtract.h src/bg_subtract.cpp)
+

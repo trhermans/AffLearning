@@ -1,13 +1,12 @@
 <package>
   <description brief="bg_subtract">
 
-     bg_subtract
+    Perform background subtraction with a camera.  First need to take the picture.
 
   </description>
   <author>Tucker Hermans</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/bg_subtract</url>
   <depend package="sensor_msgs"/>
   <depend package="opencv2"/>
   <depend package="cv_bridge"/>

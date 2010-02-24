@@ -38,22 +38,22 @@ using namespace cv;
 using std::vector;
 
 // Constants
-const int OverheadTracking::MAX_MIN_SIZE = 500;
+const int OverheadTracker::MAX_MIN_SIZE = 500;
 
-OverheadTracking::OverheadTracking() :
+OverheadTracker::OverheadTracker() :
         min_contour_size_(0), center_color_(0,255,0), contour_color_(0,0,255)
 {
     raiseDisplay();
 }
 
-void OverheadTracking::raiseDisplay()
+void OverheadTracker::raiseDisplay()
 {
     namedWindow("Contours");
     createTrackbar("Min Size", "Contours", &min_contour_size_,
                    MAX_MIN_SIZE);
 }
 
-void OverheadTracking::updateDisplay(Mat update_img,
+void OverheadTracker::updateDisplay(Mat update_img,
                                      vector<vector<Point> > contours)
 {
     // Clear out the contour momoments from the previous frame

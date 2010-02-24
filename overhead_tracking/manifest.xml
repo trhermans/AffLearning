@@ -9,6 +9,7 @@
   <depend package="bg_subtract"/>
   <depend package="roscpp"/>
   <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
   <depend package="std_msgs"/>
   <depend package="geometry_msgs"/>
 

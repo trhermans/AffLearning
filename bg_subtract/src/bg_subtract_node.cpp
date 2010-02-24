@@ -33,11 +33,12 @@
  *********************************************************************/
 
 #include <ros/ros.h>
+#include <opencv/cv.h>
 #include "sensor_msgs/Image.h"
 #include "image_transport/image_transport.h"
 #include "cv_bridge/CvBridge.h"
-#include <opencv/cv.h>
 #include "bg_subtract.h"
+#include "bg_subtract/ContourArray.h"
 
 /**
  * @file   bg_subtract_node.cpp
@@ -50,19 +51,24 @@
 class BgSubtractNode
 {
   public:
+    // Constructors and Destructors
     BgSubtractNode(ros::NodeHandle &n) :
             n_(n), it_(n)
     {
         image_sub_ = it_.subscribe("image_topic", 1,
                                    &BgSubtractNode::imageCallback, this);
+        contour_publisher_ = n.advertise<bg_subtract::ContourArray>("contours"
+                                                                    ,1);
     }
 
     ~BgSubtractNode()
     {
     }
 
+    // Publish and Subscribe methods
     void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
     {
+        // Convert from ROS image to CV image
         IplImage* fg_img = NULL;
         try
         {
@@ -74,18 +80,39 @@ class BgSubtractNode
         }
 
         cv::Mat fg_mat = fg_img;
+
+        // Perform the background subtraction
         bg_gui_.updateDisplay(fg_mat);
+
+        // Publish the generated contours
+        bg_subtract::ContourArray contour_msg;
+        std::vector<std::vector<cv::Point> > contours;
+        contours = bg_gui_.bg_sub_.getContours();
+
+        for (unsigned int i = 0; i < contours.size(); ++i) {
+            for (unsigned int j = 0; j < contours[i].size(); ++j) {
+                contour_msg.contours[i].points[j].x = contours[i][j].x;
+                contour_msg.contours[i].points[j].y = contours[i][j].y;
+            }
+        }
+
+        contour_publisher_.publish(contour_msg);
     }
 
   protected:
     ros::NodeHandle n_;
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
+    ros::Publisher contour_publisher_;
     sensor_msgs::CvBridge bridge_;
+
     BgSubtractGUI bg_gui_;
 };
 
 
+/**
+ * Method to start the background subtraction ros node
+ */
 int main(int argc, char ** argv)
 {
     ros::init(argc, argv, "bg_subtract");

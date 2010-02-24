@@ -38,10 +38,10 @@
 #include <opencv/cxcore.h>
 #include <vector>
 
-class OverheadTracking
+class OverheadTracker
 {
 public:
-    OverheadTracking();
+    OverheadTracker();
     void updateDisplay(cv::Mat update_img,
                        std::vector<std::vector<cv::Point> > contours);
 private:

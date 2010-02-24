@@ -76,9 +76,9 @@ public:
     BgSubtractGUI(cv::Mat bg_img);
     ~BgSubtractGUI() {}
     void updateDisplay(cv::Mat update_img);
+    BgSubtract bg_sub_;
 
 protected:
-    BgSubtract bg_sub_;
     int diff_thresh_;
     static const int MAX_DIFF_THRESH;
     static const char CREATE_BG_KEY;

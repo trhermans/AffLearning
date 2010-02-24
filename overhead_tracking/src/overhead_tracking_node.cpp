@@ -32,18 +32,47 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 #include <ros/ros.h>
+#include <opencv/cv.h>
+#include "sensor_msgs/Image.h"
+#include "image_transport/image_transport.h"
+#include "cv_bridge/CvBridge.h"
 #include "overhead_tracking.h"
 
 class OverheadTrackingNode
 {
   public:
     OverheadTrackingNode(ros::NodeHandle &n) :
-            n_(n)
+            n_(n), it_(n)
     {
+        // n.subscribe();
     }
+
+    void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
+    {
+        IplImage* fg_img = NULL;
+        try
+        {
+            fg_img = bridge_.imgMsgToCv(msg_ptr);
+        }
+        catch (sensor_msgs::CvBridgeException error)
+        {
+            ROS_ERROR("Error converting ROS image to IplImage");
+        }
+
+        current_img_ = fg_img;
+    }
+
+    // void contourCallback(const );
 
   protected:
     ros::NodeHandle n_;
+    image_transport::ImageTransport it_;
+    image_transport::Subscriber image_sub_;
+    sensor_msgs::CvBridge bridge_;
+    ros::Subscriber contour_subscriber_;
+
+    OverheadTracker tracker_;
+    cv::Mat current_img_;
 };
 
 int main(int argc, char ** argv)
