@@ -61,10 +61,6 @@ class BgSubtractNode
                                                                     ,1);
     }
 
-    ~BgSubtractNode()
-    {
-    }
-
     // Publish and Subscribe methods
 
     /**
@@ -93,14 +89,18 @@ class BgSubtractNode
 
         // Publish the generated contours
         bg_subtract::ContourArray contour_msg;
-        std::vector<std::vector<cv::Point> > contours;
-        contours = bg_gui_.bg_sub_.getContours();
+        std::vector<std::vector<cv::Point> > contours(
+            bg_gui_.bg_sub_.getContours());
 
         for (unsigned int i = 0; i < contours.size(); ++i) {
+            bg_subtract::Contour contour;
             for (unsigned int j = 0; j < contours[i].size(); ++j) {
-                contour_msg.contours[i].points[j].x = contours[i][j].x;
-                contour_msg.contours[i].points[j].y = contours[i][j].y;
+                bg_subtract::ImagePoint pt;
+                pt.x = contours[i][j].x;
+                pt.y = contours[i][j].y;
+                contour.points.push_back(pt);
             }
+            contour_msg.contours.push_back(contour);
         }
 
         contour_publisher_.publish(contour_msg);
@@ -110,8 +110,8 @@ class BgSubtractNode
     ros::NodeHandle n_;
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
-    ros::Publisher contour_publisher_;
     sensor_msgs::CvBridge bridge_;
+    ros::Publisher contour_publisher_;
 
     BgSubtractGUI bg_gui_;
 };

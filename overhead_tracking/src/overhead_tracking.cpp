@@ -33,28 +33,26 @@
  *********************************************************************/
 #include <opencv/highgui.h>
 #include "overhead_tracking.h"
+#include <ros/ros.h>
 
 using namespace cv;
 using std::vector;
+using std::string;
 
 // Constants
 const int OverheadTracker::MAX_MIN_SIZE = 500;
 
-OverheadTracker::OverheadTracker() :
-        min_contour_size_(0), center_color_(0,255,0), contour_color_(0,0,255)
+OverheadTracker::OverheadTracker(String window_name) :
+        min_contour_size_(0), center_color_(0,255,0), contour_color_(0,0,255),
+        window_name_(window_name)
 {
-    raiseDisplay();
-}
-
-void OverheadTracker::raiseDisplay()
-{
-    namedWindow("Contours");
-    createTrackbar("Min Size", "Contours", &min_contour_size_,
+    namedWindow(window_name_);
+    createTrackbar("Min Size", window_name_, &min_contour_size_,
                    MAX_MIN_SIZE);
 }
 
 void OverheadTracker::updateDisplay(Mat update_img,
-                                     vector<vector<Point> > contours)
+                                    vector<vector<Point> > contours)
 {
     // Clear out the contour momoments from the previous frame
     contour_moments_.clear();
@@ -82,8 +80,11 @@ void OverheadTracker::updateDisplay(Mat update_img,
         circle(update_img, center, 4, center_color_, 2);
     }
 
-    drawContours(update_img, contours, -1, contour_color_, 2);
+    if (contours.size() > 0)
+    {
+        drawContours(update_img, contours, -1, contour_color_, 2);
+    }
 
     // Now show our image
-    imshow("Contours", update_img);
+    imshow(window_name_, update_img);
 }

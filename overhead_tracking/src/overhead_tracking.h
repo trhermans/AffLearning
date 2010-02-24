@@ -37,23 +37,22 @@
 #include <opencv/cv.h>
 #include <opencv/cxcore.h>
 #include <vector>
+#include <string>
 
 class OverheadTracker
 {
 public:
-    OverheadTracker();
+    OverheadTracker(std::string window_name);
     void updateDisplay(cv::Mat update_img,
                        std::vector<std::vector<cv::Point> > contours);
-private:
-    void raiseDisplay();
 
 // Members
 protected:
-    std::vector<std::vector<cv::Point> > contours_;
     int min_contour_size_;
     std::vector<cv::Moments> contour_moments_;
     cv::Scalar center_color_;
     cv::Scalar contour_color_;
+    std::string window_name_;
 
 // Constants
 public:

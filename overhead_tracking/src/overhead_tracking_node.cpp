@@ -45,7 +45,7 @@ class OverheadTrackingNode
   public:
     // Constructors and Destructors
     OverheadTrackingNode(ros::NodeHandle &n) :
-            n_(n), it_(n)
+            n_(n), it_(n), tracker_("Contour Window")
     {
         image_sub_ = it_.subscribe("image_topic", 1,
                                    &OverheadTrackingNode::imageCallback, this);
@@ -56,6 +56,13 @@ class OverheadTrackingNode
     }
 
     // Publish and Subscribe methods
+
+    /**
+     * Callback method to the image transport subscriber. Currently only saves a
+     * copy of the most recent image internally to the node for future use.
+     *
+     * @param msg_ptr Most recent image off of the topic
+     */
     void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
     {
         IplImage* fg_img = NULL;
@@ -67,8 +74,12 @@ class OverheadTrackingNode
         {
             ROS_ERROR("Error converting ROS image to IplImage");
         }
+        cv::Mat fg_mat = fg_img;
+        fg_mat.copyTo(current_img_);
 
-        current_img_ = fg_img;
+        std::vector<std::vector<cv::Point> > contours;
+        contours.clear();
+        //tracker_.updateDisplay(current_img_, contours);
     }
 
     /**
@@ -79,6 +90,27 @@ class OverheadTrackingNode
      */
     void contourCallback(const bg_subtract::ContourArrayConstPtr& contour_msg)
     {
+        // Convert the message into opencv contour language
+        std::vector<std::vector<cv::Point> > contours;
+        contours.clear();
+
+        for (unsigned int i = 0; i < contour_msg->contours.size(); ++i)
+        {
+            std::vector<cv::Point> contour;
+            for (unsigned int j = 0;
+                 j < contour_msg->contours[i].points.size();
+                 ++j)
+            {
+                int x = contour_msg->contours[i].points[j].x;
+                int y = contour_msg->contours[i].points[j].y;
+                cv::Point pt(x,y);
+                contour.push_back(pt);
+            }
+            contours.push_back(contour);
+        }
+
+        // Update our contour image
+        tracker_.updateDisplay(current_img_, contours);
     }
 
   protected:

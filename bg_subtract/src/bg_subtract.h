@@ -53,9 +53,7 @@ public:
     BgSubtract(cv::Mat bg_mg);
     BgSubtract();
     cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
-    std::vector<std::vector<cv::Point> > findFGContours(cv::Mat fg_img,
-                                                        int thresh = 0,
-                                                        int min_size = 0);
+    cv::Mat findFGContours(cv::Mat fg_img, int thresh = 0, int min_size = 0);
     void updateBgImage(const cv::Mat bg_img);
     void removeBgImage();
 

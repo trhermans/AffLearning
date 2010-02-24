@@ -50,11 +50,13 @@ using std::vector;
 BgSubtract::BgSubtract(Mat bg_img) :
     has_bg_img_(true), bg_img_(bg_img)
 {
+    contours_.clear();
 }
 
 BgSubtract::BgSubtract() :
         has_bg_img_(false)
 {
+    contours_.clear();
 }
 
 /**
@@ -109,7 +111,7 @@ Mat BgSubtract::subtract(Mat fg_img, int thresh)
  *
  * @return Input image with contours drawn on it
  */
-vector<vector<Point> > BgSubtract::findFGContours(Mat fg_img, int thresh, int min_size)
+Mat BgSubtract::findFGContours(Mat fg_img, int thresh, int min_size)
 {
     Mat diff_img = subtract(fg_img, thresh);
     Mat bw_diff(diff_img.size(), CV_8UC1);
@@ -119,7 +121,7 @@ vector<vector<Point> > BgSubtract::findFGContours(Mat fg_img, int thresh, int mi
 
     findContours(bw_diff, contours_, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-    return contours_;
+    return diff_img;
 }
 
 /**
@@ -164,17 +166,23 @@ void BgSubtractGUI:: raiseDisplay()
                    MAX_DIFF_THRESH);
 }
 
+/**
+ * Perform background subtraction and display the foreground.
+ *
+ * @param update_img The new image from the camera
+ */
 void BgSubtractGUI::updateDisplay(Mat update_img)
 {
     if( bg_sub_.hasBackgroundImg() )
     {
-        Mat to_display = bg_sub_.subtract(update_img, diff_thresh_);
+        Mat to_display = bg_sub_.findFGContours(update_img, diff_thresh_);
         imshow("Background Subtract", to_display);
     }
     else
     {
         imshow("Background Subtract", update_img);
     }
+
     char c = cvWaitKey(3);
 
     if (c == CREATE_BG_KEY)
