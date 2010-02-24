@@ -31,62 +31,31 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-
-#ifndef bg_subtract_h_DEFINED
-#define bg_subtract_h_DEFINED
+#ifndef overhead_tracking_h_DEFINED
+#define overhead_tracking_h_DEFINED
 
 #include <opencv/cv.h>
 #include <opencv/cxcore.h>
 #include <vector>
 
-/**
- * @file   bg_subtract.h
- * @author Tucker Hermans <thermans@cc.gatech.edu>
- * @date   Mon Feb 15 10:10:36 2010
- *
- * @brief Class to perform background subtraction
- *
- */
-class BgSubtract
+class OverheadTracking
 {
 public:
-    BgSubtract(cv::Mat bg_mg);
-    BgSubtract();
-    cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
-    std::vector<std::vector<cv::Point> > findFGContours(cv::Mat fg_img,
-                                                        int thresh = 0,
-                                                        int min_size = 0);
-    void updateBgImage(const cv::Mat bg_img);
-    void removeBgImage();
-
-    // Getters and Setters
-    bool hasBackgroundImg() { return has_bg_img_; }
-    std::vector<std::vector<cv::Point> > getContours() { return contours_; }
-    std::vector<cv::Moments> getContourMoments() { return contour_moments_; }
-
-protected:
-    bool has_bg_img_;
-    cv::Mat bg_img_;
-    std::vector<std::vector<cv::Point> > contours_;
-};
-
-class BgSubtractGUI
-{
-public:
-    BgSubtractGUI();
-    BgSubtractGUI(cv::Mat bg_img);
-    ~BgSubtractGUI() {}
-    void updateDisplay(cv::Mat update_img);
-
-protected:
-    BgSubtract bg_sub_;
-    int diff_thresh_;
-    static const int MAX_DIFF_THRESH;
-    static const char CREATE_BG_KEY;
-    static const char ERASE_BG_KEY;
-
+    OverheadTracking();
+    void updateDisplay(Mat update_img,
+                       std::vector<std::vector<cv::Point> > contours);
 private:
     void raiseDisplay();
+
+// Members
+protected:
+    std::vector<std::vector<cv::Point> > contours_;
+    int min_contour_size_;
+    std::vector<cv::Moments> contour_moments_;
+
+// Constants
+public:
+    static const int MAX_MIN_SIZE;
 };
 
-#endif // bg_subtract_h_DEFINED
+#endif // overhead_tracking_h_DEFINED

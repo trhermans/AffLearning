@@ -32,6 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 #include <ros/ros.h>
+#include "overhead_tracking.h"
 
 class OverheadTrackingNode
 {

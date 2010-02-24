@@ -48,12 +48,12 @@ using std::vector;
  * @param _bgImg Background image for the class
  */
 BgSubtract::BgSubtract(Mat bg_img) :
-        has_bg_img_(true), bg_img_(bg_img), contour_color_(0, 0, 255)
+    has_bg_img_(true), bg_img_(bg_img)
 {
 }
 
 BgSubtract::BgSubtract() :
-        has_bg_img_(false), contour_color_(0, 0, 255)
+        has_bg_img_(false)
 {
 }
 
@@ -109,44 +109,17 @@ Mat BgSubtract::subtract(Mat fg_img, int thresh)
  *
  * @return Input image with contours drawn on it
  */
-Mat BgSubtract::findFGContours(Mat fg_img, int thresh, int min_size)
+vector<vector<Point> > BgSubtract::findFGContours(Mat fg_img, int thresh, int min_size)
 {
     Mat diff_img = subtract(fg_img, thresh);
     Mat bw_diff(diff_img.size(), CV_8UC1);
     cvtColor(diff_img, bw_diff, CV_RGB2GRAY);
 
     contours_.clear();
-    contour_moments_.clear();
 
     findContours(bw_diff, contours_, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-    // Iterate through the contours, removing those with area less than min_size
-    for (unsigned int i = 0; i < contours_.size();)
-    {
-        double size = contourArea(contours_[i]);
-        if (fabs(size) > min_size)
-        {
-            contour_moments_.push_back(moments(contours_[i]));
-            ++i;
-        }
-        else
-        {
-            contours_.erase(contours_.begin()+i);
-        }
-    }
-
-    drawContours(fg_img, contours_, -1, contour_color_, 2);
-
-    // Draw contour centers
-    for (unsigned int i = 0; i < contour_moments_.size(); ++i)
-    {
-        Point center(contour_moments_[i].m10 / contour_moments_[i].m00,
-                     contour_moments_[i].m01 / contour_moments_[i].m00);
-        Scalar s(0,255,0);
-        circle(fg_img, center, 4, s, 2);
-    }
-
-    return fg_img;
+    return contours_;
 }
 
 /**
@@ -168,12 +141,9 @@ void BgSubtract::removeBgImage()
 /*
  * BgSubtractGUI Class
  */
-
 const int BgSubtractGUI::MAX_DIFF_THRESH = 255;
-const int BgSubtractGUI::MAX_MIN_SIZE = 500;
 const char BgSubtractGUI::CREATE_BG_KEY = 'c';
 const char BgSubtractGUI::ERASE_BG_KEY = 'e';
-const char BgSubtractGUI::PRINT_CONTOUR_KEY = 'p';
 
 BgSubtractGUI::BgSubtractGUI() :
         diff_thresh_(0), min_contour_size_(0)
@@ -182,7 +152,7 @@ BgSubtractGUI::BgSubtractGUI() :
 }
 
 BgSubtractGUI::BgSubtractGUI(Mat bg_img) :
-        bg_sub_(bg_img), diff_thresh_(0), min_contour_size_(0)
+        bg_sub_(bg_img), diff_thresh_(0)
 {
     raiseDisplay();
 }
@@ -192,10 +162,6 @@ void BgSubtractGUI:: raiseDisplay()
     namedWindow("Background Subtract");
     createTrackbar("Threshold", "Background Subtract", &diff_thresh_,
                    MAX_DIFF_THRESH);
-    namedWindow("Contours");
-    createTrackbar("Min Size", "Contours", &min_contour_size_,
-                   MAX_MIN_SIZE);
-
 }
 
 void BgSubtractGUI::updateDisplay(Mat update_img)
@@ -203,10 +169,7 @@ void BgSubtractGUI::updateDisplay(Mat update_img)
     if( bg_sub_.hasBackgroundImg() )
     {
         Mat to_display = bg_sub_.subtract(update_img, diff_thresh_);
-        Mat to_display_2 = bg_sub_.findFGContours(update_img, diff_thresh_,
-                                                  min_contour_size_);
         imshow("Background Subtract", to_display);
-        imshow("Contours", to_display_2);
     }
     else
     {
@@ -221,20 +184,5 @@ void BgSubtractGUI::updateDisplay(Mat update_img)
     else if (c == ERASE_BG_KEY)
     {
         bg_sub_.removeBgImage();
-    }
-
-    if (c == PRINT_CONTOUR_KEY)
-    {
-        vector<Moments> c_ms = bg_sub_.getContourMoments();
-        vector<vector<Point> > cts = bg_sub_.getContours();
-
-        for (unsigned int i = 0; i < c_ms.size(); ++i)
-        {
-            double size = contourArea(cts[i]);
-            ROS_INFO_STREAM( "Contour " << i << " has area " << -size << " px^2"
-                             << " at ("
-                             << (int) (c_ms[i].m10 / c_ms[i].m00) << ", "
-                             << (int) (c_ms[i].m01 / c_ms[i].m00) << ")");
-        }
     }
 }

@@ -31,62 +31,59 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
+#include <opencv/highgui.h>
 
-#ifndef bg_subtract_h_DEFINED
-#define bg_subtract_h_DEFINED
+using namespace cv;
+using std::vector;
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
-#include <vector>
+// Constants
+const int BgSubtractGUI::MAX_MIN_SIZE = 500;
 
-/**
- * @file   bg_subtract.h
- * @author Tucker Hermans <thermans@cc.gatech.edu>
- * @date   Mon Feb 15 10:10:36 2010
- *
- * @brief Class to perform background subtraction
- *
- */
-class BgSubtract
+OverheadTracking::OverheadTracking() :
+    min_contour_size(0)
 {
-public:
-    BgSubtract(cv::Mat bg_mg);
-    BgSubtract();
-    cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
-    std::vector<std::vector<cv::Point> > findFGContours(cv::Mat fg_img,
-                                                        int thresh = 0,
-                                                        int min_size = 0);
-    void updateBgImage(const cv::Mat bg_img);
-    void removeBgImage();
+    raiseDisplay();
+}
 
-    // Getters and Setters
-    bool hasBackgroundImg() { return has_bg_img_; }
-    std::vector<std::vector<cv::Point> > getContours() { return contours_; }
-    std::vector<cv::Moments> getContourMoments() { return contour_moments_; }
-
-protected:
-    bool has_bg_img_;
-    cv::Mat bg_img_;
-    std::vector<std::vector<cv::Point> > contours_;
-};
-
-class BgSubtractGUI
+void OverheadTracking::raiseDisplay()
 {
-public:
-    BgSubtractGUI();
-    BgSubtractGUI(cv::Mat bg_img);
-    ~BgSubtractGUI() {}
-    void updateDisplay(cv::Mat update_img);
+    namedWindow("Contours");
+    createTrackbar("Min Size", "Contours", &min_contour_size_,
+                   MAX_MIN_SIZE);
+}
 
-protected:
-    BgSubtract bg_sub_;
-    int diff_thresh_;
-    static const int MAX_DIFF_THRESH;
-    static const char CREATE_BG_KEY;
-    static const char ERASE_BG_KEY;
+void OverheadTracking::updateDisplay(Mat update_img,
+                                     vector<vector<Point> > contours)
+{
+    // Clear out the contour momoments from the previous frame
+    contour_moments_.clear();
 
-private:
-    void raiseDisplay();
-};
+    // Iterate through the contours, removing those with area less than min_size
+    for (unsigned int i = 0; i < contours.size();)
+    {
+        double size = contourArea(contours[i]);
+        if (fabs(size) > min_size)
+        {
+            contour_moments_.push_back(moments(contours[i]));
+            ++i;
+        }
+        else
+        {
+            contours.erase(contours.begin()+i);
+        }
+    }
 
-#endif // bg_subtract_h_DEFINED
+    // Draw contour centers
+    for (unsigned int i = 0; i < contour_moments_.size(); ++i)
+    {
+        Point center(contour_moments_[i].m10 / contour_moments_[i].m00,
+                     contour_moments_[i].m01 / contour_moments_[i].m00);
+        Scalar s(0,255,0);
+        circle(fg_img, center, 4, s, 2);
+    }
+
+    drawContours(fg_img, contours, -1, contour_color_, 2);
+
+    // Now show our image
+    imshow("Contours", update_img);
+}
