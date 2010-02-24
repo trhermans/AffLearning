@@ -78,9 +78,13 @@ public:
 
 protected:
     int diff_thresh_;
+    bool active_display_;
+
+    // Constants
     static const int MAX_DIFF_THRESH;
     static const char CREATE_BG_KEY;
     static const char ERASE_BG_KEY;
+    static const char ACTIVE_DISPLAY_KEY;
 
 private:
     void raiseDisplay();

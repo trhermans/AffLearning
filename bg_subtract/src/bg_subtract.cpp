@@ -146,15 +146,16 @@ void BgSubtract::removeBgImage()
 const int BgSubtractGUI::MAX_DIFF_THRESH = 255;
 const char BgSubtractGUI::CREATE_BG_KEY = 'c';
 const char BgSubtractGUI::ERASE_BG_KEY = 'e';
+const char BgSubtractGUI::ACTIVE_DISPLAY_KEY = 'a';
 
 BgSubtractGUI::BgSubtractGUI() :
-        diff_thresh_(0)
+        diff_thresh_(0), active_display_(true)
 {
     raiseDisplay();
 }
 
 BgSubtractGUI::BgSubtractGUI(Mat bg_img) :
-        bg_sub_(bg_img), diff_thresh_(0)
+        bg_sub_(bg_img), diff_thresh_(0), active_display_(true)
 {
     raiseDisplay();
 }
@@ -176,11 +177,17 @@ void BgSubtractGUI::updateDisplay(Mat update_img)
     if( bg_sub_.hasBackgroundImg() )
     {
         Mat to_display = bg_sub_.findFGContours(update_img, diff_thresh_);
-        imshow("Background Subtract", to_display);
+        if (active_display_)
+        {
+            imshow("Background Subtract", to_display);
+        }
     }
     else
     {
-        imshow("Background Subtract", update_img);
+        if (active_display_)
+        {
+            imshow("Background Subtract", update_img);
+        }
     }
 
     char c = cvWaitKey(3);
@@ -192,5 +199,9 @@ void BgSubtractGUI::updateDisplay(Mat update_img)
     else if (c == ERASE_BG_KEY)
     {
         bg_sub_.removeBgImage();
+    }
+    if (c == ACTIVE_DISPLAY_KEY)
+    {
+        active_display_ = ! active_display_;
     }
 }
