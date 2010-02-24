@@ -87,4 +87,5 @@ void OverheadTracker::updateDisplay(Mat update_img,
 
     // Now show our image
     imshow(window_name_, update_img);
+    char c = waitKey(3);
 }

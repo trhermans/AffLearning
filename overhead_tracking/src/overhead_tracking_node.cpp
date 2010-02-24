@@ -74,12 +74,10 @@ class OverheadTrackingNode
         {
             ROS_ERROR("Error converting ROS image to IplImage");
         }
+
+        // Save a copy of the image
         cv::Mat fg_mat = fg_img;
         fg_mat.copyTo(current_img_);
-
-        std::vector<std::vector<cv::Point> > contours;
-        contours.clear();
-        //tracker_.updateDisplay(current_img_, contours);
     }
 
     /**
