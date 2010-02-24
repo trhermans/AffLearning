@@ -138,6 +138,7 @@ void BgSubtract::updateBgImage(const Mat bg_img)
 void BgSubtract::removeBgImage()
 {
     has_bg_img_ = false;
+    contours_.clear();
 }
 
 /*

@@ -51,11 +51,16 @@ OverheadTracker::OverheadTracker(String window_name) :
                    MAX_MIN_SIZE);
 }
 
-void OverheadTracker::updateDisplay(Mat update_img,
+void OverheadTracker::updateDisplay(Mat update_img_raw,
                                     vector<vector<Point> > contours)
 {
     // Clear out the contour momoments from the previous frame
     contour_moments_.clear();
+
+    // Copy the image so that we don't get lots of old object boundaries drawn
+    // when the update image is slow to refresh
+    Mat update_img;
+    update_img_raw.copyTo(update_img);
 
     // Iterate through the contours, removing those with area less than min_size
     for (unsigned int i = 0; i < contours.size();)

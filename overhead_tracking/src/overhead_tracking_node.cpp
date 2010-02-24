@@ -89,8 +89,7 @@ class OverheadTrackingNode
     void contourCallback(const bg_subtract::ContourArrayConstPtr& contour_msg)
     {
         // Convert the message into opencv contour language
-        std::vector<std::vector<cv::Point> > contours;
-        contours.clear();
+        contours_.clear();
 
         for (unsigned int i = 0; i < contour_msg->contours.size(); ++i)
         {
@@ -104,11 +103,11 @@ class OverheadTrackingNode
                 cv::Point pt(x,y);
                 contour.push_back(pt);
             }
-            contours.push_back(contour);
+            contours_.push_back(contour);
         }
 
         // Update our contour image
-        tracker_.updateDisplay(current_img_, contours);
+        tracker_.updateDisplay(current_img_, contours_);
     }
 
   protected:
@@ -120,6 +119,7 @@ class OverheadTrackingNode
 
     OverheadTracker tracker_;
     cv::Mat current_img_;
+    std::vector<std::vector<cv::Point> > contours_;
 };
 
 int main(int argc, char ** argv)
