@@ -40,17 +40,35 @@ using std::vector;
 using std::string;
 
 // Constants
-const int OverheadTracker::MAX_MIN_SIZE = 500;
+const int OverheadTracker::MAX_MIN_SIZE = 1000;
+const char OverheadTracker::DRAW_BOUNDARY_KEY = 'd';
+const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'e';
+const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 
 OverheadTracker::OverheadTracker(String window_name) :
-        min_contour_size_(0), center_color_(0,255,0), contour_color_(0,0,255),
-        window_name_(window_name)
+        object_center_color_(0, 255, 0),
+        object_contour_color_(0, 0, 255),
+        boundary_color_(0, 255, 255),
+        window_name_(window_name), drawing_boundary_(false),
+        min_contour_size_(0)
 {
+    boundary_contours_.clear();
+    working_boundary_.clear();
+
+    // Create a HighGUI window for displaying and controlling the tracker
     namedWindow(window_name_);
     createTrackbar("Min Size", window_name_, &min_contour_size_,
                    MAX_MIN_SIZE);
+    cvSetMouseCallback(window_name_.c_str(), onWindowClick, this);
 }
 
+/**
+ * Update the overhead tracker display with the most recent image and contours.
+ * Also controls functionality for interacting with the tracker.
+ *
+ * @param update_img_raw Image to update
+ * @param contours Object contours to update
+ */
 void OverheadTracker::updateDisplay(Mat update_img_raw,
                                     vector<vector<Point> > contours)
 {
@@ -82,15 +100,109 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     {
         Point center(contour_moments_[i].m10 / contour_moments_[i].m00,
                      contour_moments_[i].m01 / contour_moments_[i].m00);
-        circle(update_img, center, 4, center_color_, 2);
+        circle(update_img, center, 4, object_center_color_, 2);
     }
 
     if (contours.size() > 0)
     {
-        drawContours(update_img, contours, -1, contour_color_, 2);
+        drawContours(update_img, contours, -1, object_contour_color_, 2);
+    }
+
+    if (boundary_contours_.size() > 0)
+    {
+        drawContours(update_img, boundary_contours_, -1,
+                     boundary_color_, 2);
     }
 
     // Now show our image
     imshow(window_name_, update_img);
     char c = waitKey(3);
+
+    // Perform actions corresponding to key presses
+    if (c == DRAW_BOUNDARY_KEY)
+    {
+        if (drawing_boundary_)
+        {
+            // Accept the current boundary as a contour
+            boundary_contours_.push_back(working_boundary_);
+            working_boundary_.clear();
+        }
+
+        // Toggle drawing boundary on and off
+        drawing_boundary_ = ! drawing_boundary_;
+    }
+
+    if (c == CLEAR_BOUNDARIES_KEY)
+    {
+        boundary_contours_.clear();
+    }
+
+    if (c == CLEAR_WORKING_BOUNDARY_KEY)
+    {
+        working_boundary_.clear();
+    }
+}
+
+/**
+ * Add a point to the currently building boundary contour
+ *
+ * @param pt The point to be added
+ */
+void OverheadTracker::addBoundaryPoint(cv::Point pt)
+{
+    if (drawing_boundary_)
+    {
+        working_boundary_.push_back(pt);
+    }
+}
+
+/**
+ * Callback method for a mouse click from opencv
+ *
+ * @param event The mouse event
+ * @param x x-location of the pointer
+ * @param y y-location of the pointer
+ * @param flags associated open CV flags
+ * @param param Pointer to the calling OverheadTracker instances
+ */
+void OverheadTracker::onWindowClick(int event, int x, int y,
+                                    int flags, void* param)
+{
+    OverheadTracker * tracker;
+    tracker = reinterpret_cast<OverheadTracker*>(param);
+
+    if (!tracker->addingContour())
+    {
+        return;
+    }
+
+    Point pt(x,y);
+
+    switch(event)
+    {
+        case CV_EVENT_LBUTTONDOWN:
+            break;
+        case CV_EVENT_RBUTTONDOWN:
+            break;
+        case CV_EVENT_MBUTTONDOWN:
+            break;
+        case CV_EVENT_LBUTTONUP:
+            break;
+        case CV_EVENT_RBUTTONUP:
+            break;
+        case CV_EVENT_MBUTTONUP:
+            break;
+        case CV_EVENT_RBUTTONDBLCLK:
+            break;
+        case CV_EVENT_LBUTTONDBLCLK:
+            // Add the current point to the current contour
+            tracker->addBoundaryPoint(pt);
+            break;
+        case CV_EVENT_MBUTTONDBLCLK:
+            break;
+        case CV_EVENT_MOUSEMOVE:
+            break;
+        default:
+            break;
+    }
 }

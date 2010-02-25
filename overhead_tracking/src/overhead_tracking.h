@@ -44,19 +44,29 @@ class OverheadTracker
 public:
     OverheadTracker(std::string window_name);
     void updateDisplay(cv::Mat update_img,
-                       std::vector<std::vector<cv::Point> > contours);
+                       std::vector<std::vector<cv::Point> > object_contours);
+    static void onWindowClick(int event, int x, int y, int flags, void* param);
+    bool addingContour() { return drawing_boundary_; }
+    void addBoundaryPoint(cv::Point pt);
 
 // Members
 protected:
-    int min_contour_size_;
     std::vector<cv::Moments> contour_moments_;
-    cv::Scalar center_color_;
-    cv::Scalar contour_color_;
+    std::vector<std::vector<cv::Point> > boundary_contours_;
+    std::vector<cv::Point> working_boundary_;
+    cv::Scalar object_center_color_;
+    cv::Scalar object_contour_color_;
+    cv::Scalar boundary_color_;
     std::string window_name_;
+    bool drawing_boundary_;
+    int min_contour_size_;
 
 // Constants
 public:
     static const int MAX_MIN_SIZE;
+    static const char DRAW_BOUNDARY_KEY;
+    static const char CLEAR_BOUNDARIES_KEY;
+    static const char CLEAR_WORKING_BOUNDARY_KEY;
 };
 
 #endif // overhead_tracking_h_DEFINED
