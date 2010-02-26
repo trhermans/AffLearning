@@ -41,8 +41,9 @@ using std::string;
 
 // Constants
 const int OverheadTracker::MAX_MIN_SIZE = 1000;
+const unsigned int OverheadTracker::MIN_NUM_CONTOUR_POINTS = 3;
 const char OverheadTracker::DRAW_BOUNDARY_KEY = 'd';
-const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'e';
+const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'k';
 const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 
 OverheadTracker::OverheadTracker(String window_name) :
@@ -124,7 +125,9 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
         if (drawing_boundary_)
         {
             // Accept the current boundary as a contour
-            boundary_contours_.push_back(working_boundary_);
+            if (working_boundary_.size() >= MIN_NUM_CONTOUR_POINTS) {
+                boundary_contours_.push_back(working_boundary_);
+            }
             working_boundary_.clear();
         }
 

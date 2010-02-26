@@ -58,7 +58,7 @@ public:
     void removeBgImage();
 
     // Getters and Setters
-    const bool hasBackgroundImg() const
+    bool hasBackgroundImg() const
     {
         return has_bg_img_;
     }

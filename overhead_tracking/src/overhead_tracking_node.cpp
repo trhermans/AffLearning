@@ -33,12 +33,12 @@
  *********************************************************************/
 #include <ros/ros.h>
 #include <opencv/cv.h>
-#include <bg_subtract/ContourArray.h>
 #include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/CvBridge.h>
 
 #include "overhead_tracking.h"
+#include "bg_subtract.h"
 
 class OverheadTrackingNode
 {
@@ -49,10 +49,6 @@ class OverheadTrackingNode
     {
         image_sub_ = it_.subscribe("image_topic", 1,
                                    &OverheadTrackingNode::imageCallback, this);
-
-        contour_subscriber_ = n.subscribe("contours", 1,
-                                          &OverheadTrackingNode::
-                                          contourCallback, this);
     }
 
     // Publish and Subscribe methods
@@ -78,33 +74,9 @@ class OverheadTrackingNode
         // Save a copy of the image
         cv::Mat fg_mat = fg_img;
         fg_mat.copyTo(current_img_);
-    }
 
-    /**
-     * Callback method for the contour subscriber.  Draws the contours to the
-     * display and extracts information from them.
-     *
-     * @param contour_msg most recent contours pushed to the topic
-     */
-    void contourCallback(const bg_subtract::ContourArrayConstPtr& contour_msg)
-    {
-        // Convert the message into opencv contour language
-        contours_.clear();
-
-        for (unsigned int i = 0; i < contour_msg->contours.size(); ++i)
-        {
-            std::vector<cv::Point> contour;
-            for (unsigned int j = 0;
-                 j < contour_msg->contours[i].points.size();
-                 ++j)
-            {
-                int x = contour_msg->contours[i].points[j].x;
-                int y = contour_msg->contours[i].points[j].y;
-                cv::Point pt(x,y);
-                contour.push_back(pt);
-            }
-            contours_.push_back(contour);
-        }
+        bg_gui_.updateDisplay(current_img_);
+        contours_ = bg_gui_.bg_sub_.getContours();
 
         // Update our contour image
         tracker_.updateDisplay(current_img_, contours_);
@@ -118,6 +90,7 @@ class OverheadTrackingNode
     ros::Subscriber contour_subscriber_;
 
     OverheadTracker tracker_;
+    BgSubtractGUI bg_gui_;
     cv::Mat current_img_;
     std::vector<std::vector<cv::Point> > contours_;
 };

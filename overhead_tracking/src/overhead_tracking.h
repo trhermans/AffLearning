@@ -51,7 +51,7 @@ public:
     static void onWindowClick(int event, int x, int y, int flags, void* param);
 
     // Getters and setters
-    const bool addingContour() const
+    bool addingContour() const
     {
         return drawing_boundary_;
     }
@@ -72,6 +72,7 @@ protected:
 // Constants
 public:
     static const int MAX_MIN_SIZE;
+    static const unsigned int MIN_NUM_CONTOUR_POINTS;
     static const char DRAW_BOUNDARY_KEY;
     static const char CLEAR_BOUNDARIES_KEY;
     static const char CLEAR_WORKING_BOUNDARY_KEY;

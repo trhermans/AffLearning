@@ -8,11 +8,7 @@
   <node name="prosilica" pkg="prosilica_camera" type="prosilica_node" respawn="false" output="screen"/>
   <node ns="camera" name="image_proc" pkg="image_proc" type="image_proc"/>
 
-  <node ns="overhead" name="bg_subtract" pkg="bg_subtract" type="bg_subtract_node">
-    <remap from="image_topic" to="/camera/image_color"/>
-  </node>
-
-  <node ns="overhead" name="overhead_tracking" pkg="overhead_tracking" type="overhead_tracking_node">
+  <node name="overhead_tracking" pkg="overhead_tracking" type="overhead_tracking_node">
     <remap from="image_topic" to="/camera/image_color"/>
   </node>
 
