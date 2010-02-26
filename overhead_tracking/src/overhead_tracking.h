@@ -42,11 +42,19 @@
 class OverheadTracker
 {
 public:
+    // Constructors
     OverheadTracker(std::string window_name);
+
+    // Core funcitons
     void updateDisplay(cv::Mat update_img,
                        std::vector<std::vector<cv::Point> > object_contours);
     static void onWindowClick(int event, int x, int y, int flags, void* param);
-    bool addingContour() { return drawing_boundary_; }
+
+    // Getters and setters
+    const bool addingContour() const
+    {
+        return drawing_boundary_;
+    }
     void addBoundaryPoint(cv::Point pt);
 
 // Members

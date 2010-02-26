@@ -58,8 +58,14 @@ public:
     void removeBgImage();
 
     // Getters and Setters
-    bool hasBackgroundImg() { return has_bg_img_; }
-    std::vector<std::vector<cv::Point> > getContours() { return contours_; }
+    const bool hasBackgroundImg() const
+    {
+        return has_bg_img_;
+    }
+    const std::vector<std::vector<cv::Point> > getContours() const
+    {
+        return contours_;
+    }
 
 protected:
     bool has_bg_img_;
