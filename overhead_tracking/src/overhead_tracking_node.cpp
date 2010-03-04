@@ -87,7 +87,6 @@ class OverheadTrackingNode
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
     sensor_msgs::CvBridge bridge_;
-    ros::Subscriber contour_subscriber_;
 
     OverheadTracker tracker_;
     BgSubtractGUI bg_gui_;
