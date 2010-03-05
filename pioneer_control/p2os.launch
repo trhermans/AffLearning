@@ -1,0 +1,6 @@
+<launch>
+  <node name="pioneer_control" pkg="pioneer_control" type="pioneer_control_node.py"/>
+  <node name="pioneer" pkg="p2os" type="p2os">
+    <remap from="gripper_control" to="/grip_command"/>
+  </node>
+</launch>
