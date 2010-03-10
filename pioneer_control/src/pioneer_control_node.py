@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('pioneer_control')
 import rospy
-from p2os.msg import GripperState, MotorState
+from p2os.msg import GripperState, MotorState, PTZState
 from geometry_msgs.msg import Twist
 
 # Gripper commands
@@ -16,7 +16,7 @@ GRIP_DEPLOY = 8
 GRIP_HALT   = 15
 GRIP_PRESS  = 16
 LIFT_CARRY  = 17
-
+MOTORS_ON = 4
 CMD = 1
 
 class PioneerControlNode:
@@ -32,26 +32,38 @@ class PioneerControlNode:
         self.gripper_pub_.publish(grip_cmd)
 
     def gripperCallback(self, data):
-        rospy.loginfo(data.grip.state)
-        rospy.loginfo(data.lift.state)
         if not self.moved_:
             rospy.loginfo("Moving gripper")
+            rospy.loginfo(data.grip.state)
+            rospy.loginfo(data.lift.state)
             self.gripControl(CMD)
             self.moved_ = True
 
-        self.velControl()
+
+    def motorCallback(self, motors):
+        if motors.state == MOTORS_ON:
+            # self.velControl()
+            pass
+        else:
+            # Turn on the motors
+            rospy.loginfo("Motors are off")
+            motor_state = MotorState()
+            motor_state.state = MOTORS_ON
+            self.motor_pub_.publish(motor_state)
 
     def velControl(self):
-        # Turn on the motors
-        motor_state = MotorState()
-        motor_state.state = 4
-        self.motor_pub_.publish(motor_state)
-
         vel_cmd = Twist()
-        vel_cmd.angular.z = 1.5
-        vel_cmd.linear.x = 0.1
-        # self.vel_pub_.publish(vel_cmd)
+        vel_cmd.angular.z = -1.5
+        vel_cmd.linear.x = 0.0
+        self.vel_pub_.publish(vel_cmd)
 
+    def ptzCallback(self, ptz_state):
+        if ptz_state.zoom == 0:
+            cmd = PTZState()
+            cmd.pan = 90
+            cmd.tilt = 30
+            cmd.zoom = 3
+            self.ptz_pub_.publish(cmd)
 
     def run(self):
         rospy.init_node("pioneer_control")
@@ -59,9 +71,11 @@ class PioneerControlNode:
         self.motor_pub_ = rospy.Publisher("motor_state_command", MotorState)
         self.vel_pub_ = rospy.Publisher("velocity_command", Twist)
         self.gripper_pub_ = rospy.Publisher("gripper_command", GripperState)
+        self.ptz_pub_ = rospy.Publisher("ptz_command", PTZState)
 
         rospy.Subscriber("gripper_status", GripperState, self.gripperCallback)
-
+        rospy.Subscriber("motor_status", MotorState, self.motorCallback)
+        rospy.Subscriber("ptz_status", PTZState, self.ptzCallback)
         rospy.spin()
 
 if __name__ == '__main__':
