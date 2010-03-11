@@ -124,13 +124,22 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     {
         if (drawing_boundary_)
         {
+          ROS_INFO("Stopping boundary drawing.");
             // Accept the current boundary as a contour
             if (working_boundary_.size() >= MIN_NUM_CONTOUR_POINTS) {
                 boundary_contours_.push_back(working_boundary_);
+                ROS_INFO("Saved boundary.");
+            }
+            else
+            {
+              ROS_INFO("Boundary too small, discarding.");
             }
             working_boundary_.clear();
         }
-
+        else
+        {
+          ROS_INFO("Begining to draw boundary.");
+        }
         // Toggle drawing boundary on and off
         drawing_boundary_ = ! drawing_boundary_;
     }
@@ -138,11 +147,13 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     if (c == CLEAR_BOUNDARIES_KEY)
     {
         boundary_contours_.clear();
+        ROS_INFO("Cleared boundaries.");
     }
 
     if (c == CLEAR_WORKING_BOUNDARY_KEY)
     {
         working_boundary_.clear();
+        ROS_INFO("Cleared working boundary.");
     }
 }
 
