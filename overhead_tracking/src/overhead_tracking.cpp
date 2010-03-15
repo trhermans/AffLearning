@@ -39,6 +39,13 @@ using namespace cv;
 using std::vector;
 using std::string;
 
+inline int sign(double x)
+{
+  if(x < 0)
+    return -1;
+  return 1;
+}
+
 // Constants
 const int OverheadTracker::MAX_MIN_SIZE = 1000;
 const unsigned int OverheadTracker::MIN_NUM_CONTOUR_POINTS = 3;
@@ -137,7 +144,57 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
 void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
                                    std::vector<cv::Moments>& object_moments)
 {
+  vector<double *> cur_hus;
+  vector<double *> prev_hus;
+
+  for (unsigned int i = 0; i < object_moments.size(); ++i)
+  {
+    double * cur_hu = new double[7];
+    HuMoments(object_moments[i], cur_hu);
+    cur_hus.push_back(cur_hu);
+  }
+
+  for (unsigned int i = 0; i < contour_moments_.size(); ++i)
+  {
+    double * prev_hu = new double[7];
+    HuMoments(contour_moments_[i], prev_hu);
+    prev_hus.push_back(prev_hu);
+  }
+
+  // Match new regions to previous ones
+  for (unsigned int i = 0; i < cur_hus.size(); ++i)
+  {
+    for (unsigned int j = 0; j < prev_hus.size(); ++j)
+    {
+      double score1 = 0;
+      double score2 = 0;
+      double score3 = 0;
+      for (unsigned int k = 0; k < 7; ++k)
+      {
+        double m_cur = sign(cur_hus[i][k])*log(cur_hus[i][k]);
+        double m_prev = sign(prev_hus[j][k])*log(prev_hus[j][k]);
+        score1 += fabs(1.0 / m_cur - 1.0/m_prev);
+        score2 += fabs(m_cur - m_prev);
+        score3 += fabs(m_cur - m_prev)/fabs(m_cur);
+      }
+    }
+  }
+
+  // Cleanup after the moments
+  for (unsigned int i = 0; i < cur_hus.size(); ++i)
+  {
+    delete[] cur_hus[i];
+  }
+  for (unsigned int i = 0; i < prev_hus.size(); ++i)
+  {
+    delete[] prev_hus[i];
+  }
+
+
+  // Now that we've matched tracks, clear the old ones and replace them with the
+  // new ones
   contour_moments_.clear();
+
   for (unsigned int i = 0; i < object_contours.size(); ++i)
   {
     contour_moments_.push_back(moments(object_contours[i]));
@@ -256,6 +313,10 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
       break;
   }
 }
+
+//
+// Color Histogram Stuff
+//
 
 RGBHistogram::RGBHistogram(int r_bins, int g_bins, int b_bins) :
     r_bins_(r_bins), g_bins_(g_bins), b_bins_(b_bins)
