@@ -38,6 +38,8 @@
 #include <opencv/cxcore.h>
 #include <vector>
 #include <string>
+#include "overhead_tracking/CleanupObjectArray.h"
+
 class RGBHistogram
 {
  public:
@@ -85,6 +87,7 @@ class OverheadTracker
  protected:
   std::vector<cv::Moments> contour_moments_;
   std::vector<RGBHistogram> contour_colors_;
+  overhead_tracking::CleanupObjectArray current_objects_;
   std::vector<std::vector<cv::Point> > boundary_contours_;
   std::vector<cv::Point> working_boundary_;
   cv::Scalar object_center_color_;

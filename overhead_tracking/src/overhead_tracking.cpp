@@ -164,6 +164,12 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   // Match new regions to previous ones
   for (unsigned int i = 0; i < cur_hus.size(); ++i)
   {
+    double min_score1 = FLT_MAX;
+    double min_score2 = FLT_MAX;
+    double min_score3 = FLT_MAX;
+    unsigned int min_idx1 = -1;
+    unsigned int min_idx2 = -1;
+    unsigned int min_idx3 = -1;
     for (unsigned int j = 0; j < prev_hus.size(); ++j)
     {
       double score1 = 0;
@@ -177,7 +183,24 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
         score2 += fabs(m_cur - m_prev);
         score3 += fabs(m_cur - m_prev)/fabs(m_cur);
       }
+      if(score1 < min_score1)
+      {
+        min_score1 = score1;
+        min_idx1 = j;
+      }
+      if(score2 < min_score2)
+      {
+        min_score2 = score2;
+        min_idx2 = j;
+      }
+      if(score3 < min_score3)
+      {
+        min_score3 = score3;
+        min_idx3 = j;
+      }
     }
+
+    // We have found the mimimum score, update our instances...
   }
 
   // Cleanup after the moments
@@ -189,7 +212,6 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   {
     delete[] prev_hus[i];
   }
-
 
   // Now that we've matched tracks, clear the old ones and replace them with the
   // new ones
