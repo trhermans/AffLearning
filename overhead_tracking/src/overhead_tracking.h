@@ -38,44 +38,68 @@
 #include <opencv/cxcore.h>
 #include <vector>
 #include <string>
+class RGBHistogram
+{
+ public:
+  // Constructors and destructors
+  RGBHistogram(int r_bins=16, int g_bins=16, int b_bins=16);
+  virtual ~RGBHistogram();
+
+  // Core functions
+  void createHist(cv::Mat img);
+  void createHist(cv::Mat img, std::vector<cv::Point> contour);
+  float compareHists(RGBHistogram compare_hist);
+
+ protected:
+  int r_bins_;
+  int g_bins_;
+  int b_bins_;
+  cv::MatND hist_;
+};
 
 class OverheadTracker
 {
-public:
-    // Constructors
-    OverheadTracker(std::string window_name);
+ public:
+  // Constructors
+  OverheadTracker(std::string window_name);
 
-    // Core funcitons
-    void updateDisplay(cv::Mat update_img,
-                       std::vector<std::vector<cv::Point> > object_contours);
-    static void onWindowClick(int event, int x, int y, int flags, void* param);
+  // Core funcitons
+  void updateDisplay(cv::Mat update_img,
+                     std::vector<std::vector<cv::Point> > object_contours);
+  void updateTracks(std::vector<std::vector<cv::Point> >& object_contours,
+                    std::vector<cv::Moments>& object_moments);
 
-    // Getters and setters
-    bool addingContour() const
-    {
-        return drawing_boundary_;
-    }
-    void addBoundaryPoint(cv::Point pt);
+  // User IO Methods
+  static void onWindowClick(int event, int x, int y, int flags, void* param);
+  void onKeyCallback(char c);
+  void addBoundaryPoint(cv::Point pt);
 
-// Members
-protected:
-    std::vector<cv::Moments> contour_moments_;
-    std::vector<std::vector<cv::Point> > boundary_contours_;
-    std::vector<cv::Point> working_boundary_;
-    cv::Scalar object_center_color_;
-    cv::Scalar object_contour_color_;
-    cv::Scalar boundary_color_;
-    std::string window_name_;
-    bool drawing_boundary_;
-    int min_contour_size_;
+  // Getters and setters
+  bool addingContour() const
+  {
+    return drawing_boundary_;
+  }
 
-// Constants
-public:
-    static const int MAX_MIN_SIZE;
-    static const unsigned int MIN_NUM_CONTOUR_POINTS;
-    static const char DRAW_BOUNDARY_KEY;
-    static const char CLEAR_BOUNDARIES_KEY;
-    static const char CLEAR_WORKING_BOUNDARY_KEY;
+
+  // Members
+ protected:
+  std::vector<cv::Moments> contour_moments_;
+  std::vector<RGBHistogram> contour_colors_;
+  std::vector<std::vector<cv::Point> > boundary_contours_;
+  std::vector<cv::Point> working_boundary_;
+  cv::Scalar object_center_color_;
+  cv::Scalar object_contour_color_;
+  cv::Scalar boundary_color_;
+  std::string window_name_;
+  bool drawing_boundary_;
+  int min_contour_size_;
+
+  // Constants
+ public:
+  static const int MAX_MIN_SIZE;
+  static const unsigned int MIN_NUM_CONTOUR_POINTS;
+  static const char DRAW_BOUNDARY_KEY;
+  static const char CLEAR_BOUNDARIES_KEY;
+  static const char CLEAR_WORKING_BOUNDARY_KEY;
 };
-
 #endif // overhead_tracking_h_DEFINED

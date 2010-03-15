@@ -41,63 +41,63 @@
 
 class OverheadTrackingNode
 {
-  public:
-    // Constructors and Destructors
-    OverheadTrackingNode(ros::NodeHandle &n) :
-            n_(n), it_(n), tracker_("Contour Window")
+ public:
+  // Constructors and Destructors
+  OverheadTrackingNode(ros::NodeHandle &n) :
+      n_(n), it_(n), tracker_("Contour Window")
+  {
+    image_sub_ = it_.subscribe("image_topic", 1,
+                               &OverheadTrackingNode::imageCallback, this);
+  }
+
+  // Publish and Subscribe methods
+
+  /**
+   * Callback method to the image transport subscriber. Currently only saves a
+   * copy of the most recent image internally to the node for future use.
+   *
+   * @param msg_ptr Most recent image off of the topic
+   */
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
+  {
+    IplImage* fg_img = NULL;
+    try
     {
-        image_sub_ = it_.subscribe("image_topic", 1,
-                                   &OverheadTrackingNode::imageCallback, this);
+      fg_img = bridge_.imgMsgToCv(msg_ptr);
+    }
+    catch (sensor_msgs::CvBridgeException error)
+    {
+      ROS_ERROR("Error converting ROS image to IplImage");
     }
 
-    // Publish and Subscribe methods
+    // Save a copy of the image
+    cv::Mat fg_mat = fg_img;
+    fg_mat.copyTo(current_img_);
 
-    /**
-     * Callback method to the image transport subscriber. Currently only saves a
-     * copy of the most recent image internally to the node for future use.
-     *
-     * @param msg_ptr Most recent image off of the topic
-     */
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
-    {
-        IplImage* fg_img = NULL;
-        try
-        {
-            fg_img = bridge_.imgMsgToCv(msg_ptr);
-        }
-        catch (sensor_msgs::CvBridgeException error)
-        {
-            ROS_ERROR("Error converting ROS image to IplImage");
-        }
+    bg_gui_.updateDisplay(current_img_);
+    contours_ = bg_gui_.bg_sub_.getContours();
 
-        // Save a copy of the image
-        cv::Mat fg_mat = fg_img;
-        fg_mat.copyTo(current_img_);
+    // Update our contour image
+    tracker_.updateDisplay(current_img_, contours_);
+  }
 
-        bg_gui_.updateDisplay(current_img_);
-        contours_ = bg_gui_.bg_sub_.getContours();
+ protected:
+  ros::NodeHandle n_;
+  image_transport::ImageTransport it_;
+  image_transport::Subscriber image_sub_;
+  sensor_msgs::CvBridge bridge_;
 
-        // Update our contour image
-        tracker_.updateDisplay(current_img_, contours_);
-    }
-
-  protected:
-    ros::NodeHandle n_;
-    image_transport::ImageTransport it_;
-    image_transport::Subscriber image_sub_;
-    sensor_msgs::CvBridge bridge_;
-
-    OverheadTracker tracker_;
-    BgSubtractGUI bg_gui_;
-    cv::Mat current_img_;
-    std::vector<std::vector<cv::Point> > contours_;
+  OverheadTracker tracker_;
+  BgSubtractGUI bg_gui_;
+  cv::Mat current_img_;
+  std::vector<std::vector<cv::Point> > contours_;
 };
 
 int main(int argc, char ** argv)
 {
-    ros::init(argc, argv, "overhead_tracking");
-    ros::NodeHandle n;
-    OverheadTrackingNode overhead_node(n);
-    ros::spin();
+  ros::init(argc, argv, "overhead_tracking");
+  ros::NodeHandle n;
+  OverheadTrackingNode overhead_node(n);
+  ros::spin();
 }
 
