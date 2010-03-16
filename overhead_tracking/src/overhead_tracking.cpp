@@ -38,6 +38,8 @@
 using namespace cv;
 using std::vector;
 using std::string;
+using overhead_tracking::CleanupObjectArray;
+using overhead_tracking::CleanupObject;
 
 inline int sign(double x)
 {
@@ -58,7 +60,7 @@ OverheadTracker::OverheadTracker(String window_name) :
     object_contour_color_(0, 0, 255),
     boundary_color_(0, 255, 255),
     window_name_(window_name), drawing_boundary_(false),
-    min_contour_size_(0)
+    min_contour_size_(0), tracking_(false), initialized_(false), run_count_(0)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -68,6 +70,28 @@ OverheadTracker::OverheadTracker(String window_name) :
   createTrackbar("Min Size", window_name_, &min_contour_size_,
                  MAX_MIN_SIZE);
   cvSetMouseCallback(window_name_.c_str(), onWindowClick, this);
+}
+
+/**
+ * Initialize the object tracks
+ *
+ * @param object_moments Associated moments
+ */
+void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
+                                 std::vector<cv::Moments>& object_moments)
+{
+  initialized_ = true;
+  tracked_objects_.clear();
+  for (unsigned int i = 0; i < object_moments.size(); ++i)
+  {
+    OverheadVisualObject obj;
+    obj.state.x = object_moments[i].m10 / object_moments[i].m00;
+    obj.state.y = object_moments[i].m01 / object_moments[i].m00;
+    obj.state.dx = 0;
+    obj.state.dy = 0;
+    obj.moments = object_moments[i];
+    tracked_objects_.push_back(obj);
+  }
 }
 
 /**
@@ -86,6 +110,9 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   update_img_raw.copyTo(update_img);
   vector<Moments> object_moments;
 
+  if (!tracking_ && contours.size() > 0)
+    tracking_ = true;
+
   // Iterate through the contours, removing those with area less than min_size
   for (unsigned int i = 0; i < contours.size();)
   {
@@ -103,13 +130,25 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   }
 
   // Update the object tracks before drawing the updates on the display
-  updateTracks(contours, object_moments);
+  if (tracking_)
+  {
+    if (!initialized_)
+    {
+      ROS_DEBUG("Initializing tracking on run %lu", run_count_);
+      initTracks(contours, object_moments);
+    }
+    else
+    {
+      ROS_DEBUG("Updating on run %lu", run_count_);
+      updateTracks(contours, object_moments);
+    }
+  }
 
   // Draw contour centers
-  for (unsigned int i = 0; i < contour_moments_.size(); ++i)
+  for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
   {
-    Point center(contour_moments_[i].m10 / contour_moments_[i].m00,
-                 contour_moments_[i].m01 / contour_moments_[i].m00);
+    Point center(tracked_objects_[i].state.x,
+                 tracked_objects_[i].state.y);
     circle(update_img, center, 4, object_center_color_, 2);
   }
 
@@ -131,6 +170,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   char c = waitKey(3);
 
   onKeyCallback(c);
+  run_count_++;
 }
 
 
@@ -144,83 +184,45 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
 void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
                                    std::vector<cv::Moments>& object_moments)
 {
-  vector<double *> cur_hus;
-  vector<double *> prev_hus;
-
-  for (unsigned int i = 0; i < object_moments.size(); ++i)
-  {
-    double * cur_hu = new double[7];
-    HuMoments(object_moments[i], cur_hu);
-    cur_hus.push_back(cur_hu);
-  }
-
-  for (unsigned int i = 0; i < contour_moments_.size(); ++i)
-  {
-    double * prev_hu = new double[7];
-    HuMoments(contour_moments_[i], prev_hu);
-    prev_hus.push_back(prev_hu);
-  }
-
   // Match new regions to previous ones
-  for (unsigned int i = 0; i < cur_hus.size(); ++i)
+  for (unsigned int i = 0; i < object_moments.size() &&
+           tracked_objects_.size() > 0; ++i)
   {
-    double min_score1 = FLT_MAX;
-    double min_score2 = FLT_MAX;
-    double min_score3 = FLT_MAX;
-    unsigned int min_idx1 = -1;
-    unsigned int min_idx2 = -1;
-    unsigned int min_idx3 = -1;
-    for (unsigned int j = 0; j < prev_hus.size(); ++j)
+    double min_space_dist = DBL_MAX;
+    int min_space_idx = -1;
+    ROS_DEBUG("Scores for contour %u", i);
+    for (unsigned int j = 0; j < tracked_objects_.size(); ++j)
     {
-      double score1 = 0;
-      double score2 = 0;
-      double score3 = 0;
-      for (unsigned int k = 0; k < 7; ++k)
+      double dX = tracked_objects_[i].state.x - (object_moments[j].m10 /
+                                                 object_moments[j].m00);
+      double dY = tracked_objects_[i].state.y - (object_moments[j].m01 /
+                                                 object_moments[j].m00);
+      double space_dist = sqrt(dX*dX + dY*dY);
+      if (space_dist < min_space_dist)
       {
-        double m_cur = sign(cur_hus[i][k])*log(cur_hus[i][k]);
-        double m_prev = sign(prev_hus[j][k])*log(prev_hus[j][k]);
-        score1 += fabs(1.0 / m_cur - 1.0/m_prev);
-        score2 += fabs(m_cur - m_prev);
-        score3 += fabs(m_cur - m_prev)/fabs(m_cur);
-      }
-      if(score1 < min_score1)
-      {
-        min_score1 = score1;
-        min_idx1 = j;
-      }
-      if(score2 < min_score2)
-      {
-        min_score2 = score2;
-        min_idx2 = j;
-      }
-      if(score3 < min_score3)
-      {
-        min_score3 = score3;
-        min_idx3 = j;
+        min_space_dist = space_dist;
+        min_space_idx = j;
       }
     }
-
     // We have found the mimimum score, update our instances...
-  }
-
-  // Cleanup after the moments
-  for (unsigned int i = 0; i < cur_hus.size(); ++i)
-  {
-    delete[] cur_hus[i];
-  }
-  for (unsigned int i = 0; i < prev_hus.size(); ++i)
-  {
-    delete[] prev_hus[i];
+    ROS_DEBUG("Min spacial distnace is %le at point %u\n",
+              min_space_dist, min_space_idx);
   }
 
   // Now that we've matched tracks, clear the old ones and replace them with the
   // new ones
-  contour_moments_.clear();
-
-  for (unsigned int i = 0; i < object_contours.size(); ++i)
+  tracked_objects_.clear();
+  for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
-    contour_moments_.push_back(moments(object_contours[i]));
+    OverheadVisualObject obj;
+    obj.state.x = object_moments[i].m10 / object_moments[i].m00;
+    obj.state.y = object_moments[i].m01 / object_moments[i].m00;
+    obj.state.dx = 0;
+    obj.state.dy = 0;
+    obj.moments = object_moments[i];
+    tracked_objects_.push_back(obj);
   }
+
 }
 
 //
@@ -372,7 +374,7 @@ void RGBHistogram::createHist(Mat img, vector<Point> contour)
   Mat mask(img.size(), CV_8UC1, Scalar(0));
   Point* contour_p;
   contour_p = contour.get_allocator().allocate(contour.size());
-  fillConvexPoly(img, contour_p, contour.size(), Scalar(255));
+  fillConvexPoly(mask, contour_p, contour.size(), Scalar(1));
 
   calcHist( &img, 1, static_cast<int*>(channels), mask,
             hist_, 2, static_cast<int*>(hist_size),
@@ -380,7 +382,11 @@ void RGBHistogram::createHist(Mat img, vector<Point> contour)
 
 }
 
-float RGBHistogram::compareHists(RGBHistogram compare_hist)
+double RGBHistogram::compareHists(RGBHistogram compare_hist)
 {
-  return 0.0f;
+  // CV_COMP_CORREL - Correlation
+  // CV_COMP_CHISQR - Chi-Square
+  // CV_COMP_INTERSECT - Intersection
+  // CV_COMP_BHATTACHARYYA - Bhattacharyya distance
+  return compareHist(hist_, *compare_hist.getHist(), CV_COMP_INTERSECT);
 }

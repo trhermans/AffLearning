@@ -39,7 +39,11 @@
 #include <vector>
 #include <string>
 #include "overhead_tracking/CleanupObjectArray.h"
+#include "overhead_tracking/CleanupObject.h"
 
+//
+// Class to calculate and store color histograms of images and regions of images
+//
 class RGBHistogram
 {
  public:
@@ -50,7 +54,12 @@ class RGBHistogram
   // Core functions
   void createHist(cv::Mat img);
   void createHist(cv::Mat img, std::vector<cv::Point> contour);
-  float compareHists(RGBHistogram compare_hist);
+  double compareHists(RGBHistogram compare_hist);
+
+  cv::MatND* getHist()
+  {
+    return &hist_;
+  }
 
  protected:
   int r_bins_;
@@ -59,6 +68,21 @@ class RGBHistogram
   cv::MatND hist_;
 };
 
+//
+// Class to store all relevant information to a specific object being tracked.
+//
+class OverheadVisualObject
+{
+ public:
+  overhead_tracking::CleanupObject state;
+  RGBHistogram color;
+  cv::Moments moments;
+  OverheadVisualObject() {}
+};
+
+//
+// Class to perform the tracking overtime
+//
 class OverheadTracker
 {
  public:
@@ -68,8 +92,11 @@ class OverheadTracker
   // Core funcitons
   void updateDisplay(cv::Mat update_img,
                      std::vector<std::vector<cv::Point> > object_contours);
+  void initTracks(std::vector<std::vector<cv::Point> >& object_contours,
+                  std::vector<cv::Moments>& object_moments);
   void updateTracks(std::vector<std::vector<cv::Point> >& object_contours,
                     std::vector<cv::Moments>& object_moments);
+
 
   // User IO Methods
   static void onWindowClick(int event, int x, int y, int flags, void* param);
@@ -82,12 +109,15 @@ class OverheadTracker
     return drawing_boundary_;
   }
 
-
   // Members
  protected:
-  std::vector<cv::Moments> contour_moments_;
-  std::vector<RGBHistogram> contour_colors_;
-  overhead_tracking::CleanupObjectArray current_objects_;
+  // Tracking members
+  std::vector<OverheadVisualObject> tracked_objects_;
+  // std::vector<cv::Moments> contour_moments_;
+  // std::vector<RGBHistogram> contour_colors_;
+  // overhead_tracking::CleanupObjectArray current_objects_;
+
+  // User IO members
   std::vector<std::vector<cv::Point> > boundary_contours_;
   std::vector<cv::Point> working_boundary_;
   cv::Scalar object_center_color_;
@@ -95,7 +125,12 @@ class OverheadTracker
   cv::Scalar boundary_color_;
   std::string window_name_;
   bool drawing_boundary_;
+
+  // Tracking and state parameters
   int min_contour_size_;
+  bool tracking_;
+  bool initialized_;
+  unsigned long run_count_;
 
   // Constants
  public:
