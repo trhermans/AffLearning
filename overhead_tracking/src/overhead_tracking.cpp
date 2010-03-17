@@ -185,6 +185,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       Point center(tracked_objects_[i].state.pose.x,
                    tracked_objects_[i].state.pose.y);
       circle(update_img, center, 4, object_center_color_, 2);
+      
     }
 
     // Draw contours
@@ -201,7 +202,16 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       Point center(tracked_robot_.state.pose.x,
                    tracked_robot_.state.pose.y);
       circle(update_img, center, 4, robot_contour_color_, 2);
-      // TODO: Draw robot orientation...
+
+      // Draw robot axes
+      // Moments m = tracked_robot_.moments;
+      // double theta_x = 0.5*atan2(2*m.mu11, m.mu20 - m.mu02);
+      // Point x_a(center.x + cos(theta_x)*100,
+      //           center.y + sin(theta_x)*100);
+      // Point y_a(center.x + cos(theta_x - M_PI/2.0)*100,
+      //           center.y + sin(theta_x - M_PI/2.0)*100);
+      // line(update_img, center, x_a, Scalar(255,0,255), 2);
+      // line(update_img, center, y_a, Scalar(0,255,0), 2);
     }
   }
 
@@ -285,6 +295,7 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
   tracked_robot_.state.pose.y = newY;
 
   tracked_robot_.contour = robot_contour;
+  tracked_robot_.moments = robot_moments;
 }
 
 //

@@ -128,9 +128,6 @@ class OverheadTracker
   // Tracking members
   std::vector<OverheadVisualObject> tracked_objects_;
   OverheadVisualObject tracked_robot_;
-  // std::vector<cv::Moments> contour_moments_;
-  // std::vector<RGBHistogram> contour_colors_;
-  // overhead_tracking::CleanupObjectArray current_objects_;
 
   // User IO members
   std::vector<std::vector<cv::Point> > boundary_contours_;
