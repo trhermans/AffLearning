@@ -72,10 +72,10 @@ OverheadTracker::OverheadTracker(String window_name) :
   createTrackbar("Min Size", window_name_, &min_contour_size_,
                  MAX_MIN_SIZE);
   cvSetMouseCallback(window_name_.c_str(), onWindowClick, this);
-  tracked_robot_.state.x = 0;
-  tracked_robot_.state.y = 0;
-  tracked_robot_.state.dx = 0;
-  tracked_robot_.state.dy = 0;
+  tracked_robot_.state.pose.x = 0;
+  tracked_robot_.state.pose.y = 0;
+  tracked_robot_.state.change.x = 0;
+  tracked_robot_.state.change.y = 0;
 }
 
 /**
@@ -91,10 +91,10 @@ void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
     OverheadVisualObject obj;
-    obj.state.x = object_moments[i].m10 / object_moments[i].m00;
-    obj.state.y = object_moments[i].m01 / object_moments[i].m00;
-    obj.state.dx = 0;
-    obj.state.dy = 0;
+    obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
+    obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
+    obj.state.change.x = 0;
+    obj.state.change.y = 0;
     obj.moments = object_moments[i];
     tracked_objects_.push_back(obj);
   }
@@ -103,11 +103,11 @@ void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
 void OverheadTracker::initRobotTrack(vector<Point>& robot_contour,
                                      Moments& robot_moments)
 {
-  tracked_robot_.state.x = robot_moments.m10 / robot_moments.m00;
-  tracked_robot_.state.y = robot_moments.m01 / robot_moments.m00;
+  tracked_robot_.state.pose.x = robot_moments.m10 / robot_moments.m00;
+  tracked_robot_.state.pose.y = robot_moments.m01 / robot_moments.m00;
 
-  tracked_robot_.state.dx = 0;
-  tracked_robot_.state.dy = 0;
+  tracked_robot_.state.change.x = 0;
+  tracked_robot_.state.change.y = 0;
   tracked_robot_.contour = robot_contour;
 }
 
@@ -182,8 +182,8 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     // Draw contour centers
     for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
     {
-      Point center(tracked_objects_[i].state.x,
-                   tracked_objects_[i].state.y);
+      Point center(tracked_objects_[i].state.pose.x,
+                   tracked_objects_[i].state.pose.y);
       circle(update_img, center, 4, object_center_color_, 2);
     }
 
@@ -193,12 +193,13 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
 
-    if (tracked_robot_.state.x != 0 || tracked_robot_.state.y != 0)
+    if (tracked_robot_.state.pose.x != 0 || tracked_robot_.state.pose.y != 0)
     {
       vector<vector<Point> > robot_contours;
       robot_contours.push_back(tracked_robot_.contour);
       drawContours(update_img, robot_contours, -1, robot_contour_color_, 2);
-      Point center(tracked_robot_.state.x, tracked_robot_.state.y);
+      Point center(tracked_robot_.state.pose.x,
+                   tracked_robot_.state.pose.y);
       circle(update_img, center, 4, robot_contour_color_, 2);
       // TODO: Draw robot orientation...
     }
@@ -239,10 +240,10 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     ROS_DEBUG("Scores for contour %u", i);
     for (unsigned int j = 0; j < tracked_objects_.size(); ++j)
     {
-      double dX = tracked_objects_[i].state.x - (object_moments[j].m10 /
-                                                 object_moments[j].m00);
-      double dY = tracked_objects_[i].state.y - (object_moments[j].m01 /
-                                                 object_moments[j].m00);
+      double dX = tracked_objects_[i].state.pose.x - (object_moments[j].m10 /
+                                                      object_moments[j].m00);
+      double dY = tracked_objects_[i].state.pose.y - (object_moments[j].m01 /
+                                                      object_moments[j].m00);
       double space_dist = sqrt(dX*dX + dY*dY);
       if (space_dist < min_space_dist)
       {
@@ -261,10 +262,10 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
     OverheadVisualObject obj;
-    obj.state.x = object_moments[i].m10 / object_moments[i].m00;
-    obj.state.y = object_moments[i].m01 / object_moments[i].m00;
-    obj.state.dx = 0;
-    obj.state.dy = 0;
+    obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
+    obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
+    obj.state.change.x = 0;
+    obj.state.change.y = 0;
     obj.moments = object_moments[i];
     tracked_objects_.push_back(obj);
   }
@@ -277,11 +278,11 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
 {
   double newX = robot_moments.m10 / robot_moments.m00;
   double newY = robot_moments.m01 / robot_moments.m00;
-  tracked_robot_.state.dx = tracked_robot_.state.x - newX;
-  tracked_robot_.state.dy = tracked_robot_.state.y - newY;
+  tracked_robot_.state.change.x = tracked_robot_.state.pose.x - newX;
+  tracked_robot_.state.change.y = tracked_robot_.state.pose.y - newY;
 
-  tracked_robot_.state.x = newX;
-  tracked_robot_.state.y = newY;
+  tracked_robot_.state.pose.x = newX;
+  tracked_robot_.state.pose.y = newY;
 
   tracked_robot_.contour = robot_contour;
 }

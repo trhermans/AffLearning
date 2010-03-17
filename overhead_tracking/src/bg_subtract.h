@@ -49,51 +49,51 @@
  */
 class BgSubtract
 {
-public:
-    BgSubtract(cv::Mat bg_mg);
-    BgSubtract();
-    cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
-    cv::Mat findFGContours(cv::Mat fg_img, int thresh = 0, int min_size = 0);
-    void updateBgImage(const cv::Mat bg_img);
-    void removeBgImage();
+ public:
+  BgSubtract(cv::Mat bg_mg);
+  BgSubtract();
+  cv::Mat subtract(cv::Mat fg_img, int thresh = 0);
+  cv::Mat findFGContours(cv::Mat fg_img, int thresh = 0, int min_size = 0);
+  void updateBgImage(const cv::Mat bg_img);
+  void removeBgImage();
 
-    // Getters and Setters
-    bool hasBackgroundImg() const
-    {
-        return has_bg_img_;
-    }
-    const std::vector<std::vector<cv::Point> > getContours() const
-    {
-        return contours_;
-    }
+  // Getters and Setters
+  bool hasBackgroundImg() const
+  {
+    return has_bg_img_;
+  }
+  const std::vector<std::vector<cv::Point> > getContours() const
+  {
+    return contours_;
+  }
 
-protected:
-    bool has_bg_img_;
-    cv::Mat bg_img_;
-    std::vector<std::vector<cv::Point> > contours_;
+ protected:
+  bool has_bg_img_;
+  cv::Mat bg_img_;
+  std::vector<std::vector<cv::Point> > contours_;
 };
 
 class BgSubtractGUI
 {
-public:
-    BgSubtractGUI();
-    BgSubtractGUI(cv::Mat bg_img);
-    ~BgSubtractGUI() {}
-    void updateDisplay(cv::Mat update_img);
-    BgSubtract bg_sub_;
+ public:
+  BgSubtractGUI();
+  BgSubtractGUI(cv::Mat bg_img);
+  ~BgSubtractGUI() {}
+  void updateDisplay(cv::Mat update_img);
+  BgSubtract bg_sub_;
 
-protected:
-    int diff_thresh_;
-    bool active_display_;
+ protected:
+  int diff_thresh_;
+  bool active_display_;
 
-    // Constants
-    static const int MAX_DIFF_THRESH;
-    static const char CREATE_BG_KEY;
-    static const char ERASE_BG_KEY;
-    static const char ACTIVE_DISPLAY_KEY;
+  // Constants
+  static const int MAX_DIFF_THRESH;
+  static const char CREATE_BG_KEY;
+  static const char ERASE_BG_KEY;
+  static const char ACTIVE_DISPLAY_KEY;
 
-private:
-    void raiseDisplay();
+ private:
+  void raiseDisplay();
 };
 
 #endif // bg_subtract_h_DEFINED

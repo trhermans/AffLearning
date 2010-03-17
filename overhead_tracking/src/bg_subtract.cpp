@@ -50,13 +50,13 @@ using std::vector;
 BgSubtract::BgSubtract(Mat bg_img) :
     has_bg_img_(true), bg_img_(bg_img)
 {
-    contours_.clear();
+  contours_.clear();
 }
 
 BgSubtract::BgSubtract() :
-        has_bg_img_(false)
+    has_bg_img_(false)
 {
-    contours_.clear();
+  contours_.clear();
 }
 
 /**
@@ -70,36 +70,36 @@ BgSubtract::BgSubtract() :
  */
 Mat BgSubtract::subtract(Mat fg_img, int thresh)
 {
-    // Determine which pixels are different
-    Mat diff_img = abs(fg_img - bg_img_);
+  // Determine which pixels are different
+  Mat diff_img = abs(fg_img - bg_img_);
 
-    // Apply this mask to the foreground image
-    vector<Mat> diff_planes;
-    vector<Mat> fg_planes;
-    split(diff_img, diff_planes);
-    split(fg_img, fg_planes);
+  // Apply this mask to the foreground image
+  vector<Mat> diff_planes;
+  vector<Mat> fg_planes;
+  split(diff_img, diff_planes);
+  split(fg_img, fg_planes);
 
-    for(int y = 0; y < diff_img.rows; ++y)
+  for(int y = 0; y < diff_img.rows; ++y)
+  {
+    for(int x = 0; x < diff_img.cols; ++x)
     {
-        for(int x = 0; x < diff_img.cols; ++x)
-        {
-            if(diff_planes[0].at<uchar>(y,x) > (uchar) thresh ||
-               diff_planes[1].at<uchar>(y,x) > (uchar) thresh ||
-               diff_planes[2].at<uchar>(y,x) > (uchar) thresh)
-            {
-                diff_planes[0].at<uchar>(y,x) = fg_planes[0].at<uchar>(y,x);
-                diff_planes[1].at<uchar>(y,x) = fg_planes[1].at<uchar>(y,x);
-                diff_planes[2].at<uchar>(y,x) = fg_planes[2].at<uchar>(y,x);
-            } else {
-                diff_planes[0].at<uchar>(y,x) = (uchar) 0;
-                diff_planes[1].at<uchar>(y,x) = (uchar) 0;
-                diff_planes[2].at<uchar>(y,x) = (uchar) 0;
-            }
-        }
+      if(diff_planes[0].at<uchar>(y,x) > (uchar) thresh ||
+         diff_planes[1].at<uchar>(y,x) > (uchar) thresh ||
+         diff_planes[2].at<uchar>(y,x) > (uchar) thresh)
+      {
+        diff_planes[0].at<uchar>(y,x) = fg_planes[0].at<uchar>(y,x);
+        diff_planes[1].at<uchar>(y,x) = fg_planes[1].at<uchar>(y,x);
+        diff_planes[2].at<uchar>(y,x) = fg_planes[2].at<uchar>(y,x);
+      } else {
+        diff_planes[0].at<uchar>(y,x) = (uchar) 0;
+        diff_planes[1].at<uchar>(y,x) = (uchar) 0;
+        diff_planes[2].at<uchar>(y,x) = (uchar) 0;
+      }
     }
+  }
 
-    merge(diff_planes, diff_img);
-    return diff_img;
+  merge(diff_planes, diff_img);
+  return diff_img;
 }
 
 /**
@@ -113,15 +113,15 @@ Mat BgSubtract::subtract(Mat fg_img, int thresh)
  */
 Mat BgSubtract::findFGContours(Mat fg_img, int thresh, int min_size)
 {
-    Mat diff_img = subtract(fg_img, thresh);
-    Mat bw_diff(diff_img.size(), CV_8UC1);
-    cvtColor(diff_img, bw_diff, CV_RGB2GRAY);
+  Mat diff_img = subtract(fg_img, thresh);
+  Mat bw_diff(diff_img.size(), CV_8UC1);
+  cvtColor(diff_img, bw_diff, CV_RGB2GRAY);
 
-    contours_.clear();
+  contours_.clear();
 
-    findContours(bw_diff, contours_, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+  findContours(bw_diff, contours_, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-    return diff_img;
+  return diff_img;
 }
 
 /**
@@ -131,14 +131,14 @@ Mat BgSubtract::findFGContours(Mat fg_img, int thresh, int min_size)
  */
 void BgSubtract::updateBgImage(const Mat bg_img)
 {
-    bg_img.copyTo(bg_img_);
-    has_bg_img_ = true;
+  bg_img.copyTo(bg_img_);
+  has_bg_img_ = true;
 }
 
 void BgSubtract::removeBgImage()
 {
-    has_bg_img_ = false;
-    contours_.clear();
+  has_bg_img_ = false;
+  contours_.clear();
 }
 
 /*
@@ -150,22 +150,22 @@ const char BgSubtractGUI::ERASE_BG_KEY = 'e';
 const char BgSubtractGUI::ACTIVE_DISPLAY_KEY = 'a';
 
 BgSubtractGUI::BgSubtractGUI() :
-        diff_thresh_(0), active_display_(true)
+    diff_thresh_(0), active_display_(true)
 {
-    raiseDisplay();
+  raiseDisplay();
 }
 
 BgSubtractGUI::BgSubtractGUI(Mat bg_img) :
-        bg_sub_(bg_img), diff_thresh_(0), active_display_(true)
+    bg_sub_(bg_img), diff_thresh_(0), active_display_(true)
 {
-    raiseDisplay();
+  raiseDisplay();
 }
 
 void BgSubtractGUI:: raiseDisplay()
 {
-    namedWindow("Background Subtract");
-    createTrackbar("Threshold", "Background Subtract", &diff_thresh_,
-                   MAX_DIFF_THRESH);
+  namedWindow("Background Subtract");
+  createTrackbar("Threshold", "Background Subtract", &diff_thresh_,
+                 MAX_DIFF_THRESH);
 }
 
 /**
@@ -175,34 +175,40 @@ void BgSubtractGUI:: raiseDisplay()
  */
 void BgSubtractGUI::updateDisplay(Mat update_img)
 {
-    if( bg_sub_.hasBackgroundImg() )
+  if( bg_sub_.hasBackgroundImg() )
+  {
+    Mat to_display = bg_sub_.findFGContours(update_img, diff_thresh_);
+    if (active_display_)
     {
-        Mat to_display = bg_sub_.findFGContours(update_img, diff_thresh_);
-        if (active_display_)
-        {
-            imshow("Background Subtract", to_display);
-        }
+      imshow("Background Subtract", to_display);
     }
+  }
+  else
+  {
+    if (active_display_)
+    {
+      imshow("Background Subtract", update_img);
+    }
+  }
+
+  char c = cvWaitKey(3);
+
+  if (c == CREATE_BG_KEY)
+  {
+    bg_sub_.updateBgImage(update_img);
+    ROS_INFO("Selected background image.");
+  }
+  else if (c == ERASE_BG_KEY)
+  {
+    bg_sub_.removeBgImage();
+    ROS_INFO("Cleared background image.");
+  }
+  if (c == ACTIVE_DISPLAY_KEY)
+  {
+    if (active_display_)
+      ROS_INFO("Deactivated BG_subtract display.");
     else
-    {
-        if (active_display_)
-        {
-            imshow("Background Subtract", update_img);
-        }
-    }
-
-    char c = cvWaitKey(3);
-
-    if (c == CREATE_BG_KEY)
-    {
-        bg_sub_.updateBgImage(update_img);
-    }
-    else if (c == ERASE_BG_KEY)
-    {
-        bg_sub_.removeBgImage();
-    }
-    if (c == ACTIVE_DISPLAY_KEY)
-    {
-        active_display_ = ! active_display_;
-    }
+      ROS_INFO("Activated BG_subtract display.");
+    active_display_ = ! active_display_;
+  }
 }

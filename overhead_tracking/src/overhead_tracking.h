@@ -40,6 +40,7 @@
 #include <string>
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupObject.h"
+#include "geometry_msgs/Pose2D.h"
 
 //
 // Class to calculate and store color histograms of images and regions of images
@@ -113,6 +114,15 @@ class OverheadTracker
     return drawing_boundary_;
   }
 
+  std::vector<OverheadVisualObject> getTrackedObjects()
+  {
+    return tracked_objects_;
+  }
+
+  geometry_msgs::Pose2D getRobotPose()
+  {
+    return tracked_robot_.state.pose;
+  }
   // Members
  protected:
   // Tracking members
