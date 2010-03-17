@@ -1,6 +1,6 @@
 <launch>
   <param name="auto_exposure" type="bool" value="False"/>
-  <param name="exposure" type="double" value="0.09"/>
+  <param name="exposure" type="double" value="0.11"/>
   <param name="auto_gain" type="bool" value="False"/>
   <param name="gain" type="int" value="0"/>
   <param name="auto_whitebalance" type="bool" value="False"/>

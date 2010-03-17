@@ -76,6 +76,7 @@ class OverheadVisualObject
  public:
   overhead_tracking::CleanupObject state;
   RGBHistogram color;
+  std::vector<cv::Point> contour;
   cv::Moments moments;
   OverheadVisualObject() {}
 };
@@ -94,9 +95,12 @@ class OverheadTracker
                      std::vector<std::vector<cv::Point> > object_contours);
   void initTracks(std::vector<std::vector<cv::Point> >& object_contours,
                   std::vector<cv::Moments>& object_moments);
+  void initRobotTrack(std::vector<cv::Point>& robot_contour,
+                      cv::Moments& robot_moments);
   void updateTracks(std::vector<std::vector<cv::Point> >& object_contours,
                     std::vector<cv::Moments>& object_moments);
-
+  void updateRobotTrack(std::vector<cv::Point>& robot_contour,
+                        cv::Moments& robot_moments);
 
   // User IO Methods
   static void onWindowClick(int event, int x, int y, int flags, void* param);
@@ -113,6 +117,7 @@ class OverheadTracker
  protected:
   // Tracking members
   std::vector<OverheadVisualObject> tracked_objects_;
+  OverheadVisualObject tracked_robot_;
   // std::vector<cv::Moments> contour_moments_;
   // std::vector<RGBHistogram> contour_colors_;
   // overhead_tracking::CleanupObjectArray current_objects_;
@@ -122,6 +127,7 @@ class OverheadTracker
   std::vector<cv::Point> working_boundary_;
   cv::Scalar object_center_color_;
   cv::Scalar object_contour_color_;
+  cv::Scalar robot_contour_color_;
   cv::Scalar boundary_color_;
   std::string window_name_;
   bool drawing_boundary_;
@@ -139,5 +145,6 @@ class OverheadTracker
   static const char DRAW_BOUNDARY_KEY;
   static const char CLEAR_BOUNDARIES_KEY;
   static const char CLEAR_WORKING_BOUNDARY_KEY;
+  static const char TOGGLE_TRACKING_KEY;
 };
 #endif // overhead_tracking_h_DEFINED

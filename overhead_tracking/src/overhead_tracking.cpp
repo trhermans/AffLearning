@@ -54,10 +54,12 @@ const unsigned int OverheadTracker::MIN_NUM_CONTOUR_POINTS = 3;
 const char OverheadTracker::DRAW_BOUNDARY_KEY = 'd';
 const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'k';
 const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
+const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
 
 OverheadTracker::OverheadTracker(String window_name) :
     object_center_color_(0, 255, 0),
     object_contour_color_(0, 0, 255),
+    robot_contour_color_(255, 0, 0),
     boundary_color_(0, 255, 255),
     window_name_(window_name), drawing_boundary_(false),
     min_contour_size_(0), tracking_(false), initialized_(false), run_count_(0)
@@ -70,6 +72,10 @@ OverheadTracker::OverheadTracker(String window_name) :
   createTrackbar("Min Size", window_name_, &min_contour_size_,
                  MAX_MIN_SIZE);
   cvSetMouseCallback(window_name_.c_str(), onWindowClick, this);
+  tracked_robot_.state.x = 0;
+  tracked_robot_.state.y = 0;
+  tracked_robot_.state.dx = 0;
+  tracked_robot_.state.dy = 0;
 }
 
 /**
@@ -94,6 +100,17 @@ void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
   }
 }
 
+void OverheadTracker::initRobotTrack(vector<Point>& robot_contour,
+                                     Moments& robot_moments)
+{
+  tracked_robot_.state.x = robot_moments.m10 / robot_moments.m00;
+  tracked_robot_.state.y = robot_moments.m01 / robot_moments.m00;
+
+  tracked_robot_.state.dx = 0;
+  tracked_robot_.state.dy = 0;
+  tracked_robot_.contour = robot_contour;
+}
+
 /**
  * Update the overhead tracker display with the most recent image and contours.
  * Also controls functionality for interacting with the tracker.
@@ -110,52 +127,81 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   update_img_raw.copyTo(update_img);
   vector<Moments> object_moments;
 
-  if (!tracking_ && contours.size() > 0)
-    tracking_ = true;
-
-  // Iterate through the contours, removing those with area less than min_size
-  for (unsigned int i = 0; i < contours.size();)
-  {
-    Moments m;
-    m = moments(contours[i]);
-    if (m.m00 < min_contour_size_)
-    {
-      contours.erase(contours.begin()+i);
-    }
-    else
-    {
-      object_moments.push_back(m);
-      ++i;
-    }
-  }
-
   // Update the object tracks before drawing the updates on the display
   if (tracking_)
   {
+    double max_size = 0;
+    int max_idx = -1;
+    // Iterate through the contours, removing those with area less than min_size
+    for (unsigned int i = 0; i < contours.size();)
+    {
+      Moments m;
+      m = moments(contours[i]);
+      if (m.m00 < min_contour_size_)
+      {
+        contours.erase(contours.begin()+i);
+      }
+      else
+      {
+        if(m.m00 > max_size)
+        {
+          max_size = m.m00;
+          max_idx = i;
+        }
+        object_moments.push_back(m);
+        ++i;
+      }
+    }
+
+
     if (!initialized_)
     {
       ROS_DEBUG("Initializing tracking on run %lu", run_count_);
       initTracks(contours, object_moments);
+      if (max_idx != -1)
+      {
+        initRobotTrack(contours[max_idx], object_moments[max_idx]);
+      }
     }
     else
     {
       ROS_DEBUG("Updating on run %lu", run_count_);
       updateTracks(contours, object_moments);
+      if (max_idx != -1)
+      {
+        updateRobotTrack(contours[max_idx], object_moments[max_idx]);
+      }
     }
-  }
+    // Remove Robot from set
+    if( max_idx != -1)
+    {
+      object_moments.erase(object_moments.begin() + max_idx);
+      contours.erase(contours.begin() + max_idx);
+    }
 
-  // Draw contour centers
-  for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
-  {
-    Point center(tracked_objects_[i].state.x,
-                 tracked_objects_[i].state.y);
-    circle(update_img, center, 4, object_center_color_, 2);
-  }
+    // Draw contour centers
+    for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
+    {
+      Point center(tracked_objects_[i].state.x,
+                   tracked_objects_[i].state.y);
+      circle(update_img, center, 4, object_center_color_, 2);
+    }
 
-  // Draw contours
-  if (contours.size() > 0)
-  {
-    drawContours(update_img, contours, -1, object_contour_color_, 2);
+    // Draw contours
+    if (contours.size() > 0)
+    {
+      drawContours(update_img, contours, -1, object_contour_color_, 2);
+    }
+
+    if (tracked_robot_.state.x != 0 || tracked_robot_.state.y != 0)
+    {
+      vector<vector<Point> > robot_contours;
+      robot_contours.push_back(tracked_robot_.contour);
+      drawContours(update_img, robot_contours, -1, robot_contour_color_, 2);
+      Point center(tracked_robot_.state.x, tracked_robot_.state.y);
+      circle(update_img, center, 4, robot_contour_color_, 2);
+      // TODO: Draw robot orientation...
+    }
   }
 
   // Draw user defined boundaries
@@ -225,6 +271,21 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
 
 }
 
+
+void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
+                                       Moments& robot_moments)
+{
+  double newX = robot_moments.m10 / robot_moments.m00;
+  double newY = robot_moments.m01 / robot_moments.m00;
+  tracked_robot_.state.dx = tracked_robot_.state.x - newX;
+  tracked_robot_.state.dy = tracked_robot_.state.y - newY;
+
+  tracked_robot_.state.x = newX;
+  tracked_robot_.state.y = newY;
+
+  tracked_robot_.contour = robot_contour;
+}
+
 //
 // User IO Methods
 //
@@ -284,6 +345,21 @@ void OverheadTracker::onKeyCallback(char c)
   {
     working_boundary_.clear();
     ROS_INFO("Cleared working boundary.");
+  }
+
+  if (c == TOGGLE_TRACKING_KEY)
+  {
+    if (!tracking_)
+    {
+      tracking_ = true;
+      ROS_INFO("Tracking Began.");
+    }
+    else
+    {
+      tracking_ = false;
+      initialized_ = false;
+      ROS_INFO("Tracking ended.");
+    }
   }
 }
 
