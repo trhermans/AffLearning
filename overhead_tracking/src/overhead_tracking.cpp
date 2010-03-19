@@ -31,13 +31,19 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#include <opencv/highgui.h>
 #include "overhead_tracking.h"
 #include <ros/ros.h>
+#include <opencv/highgui.h>
+#include <map>
+#include <sstream>
+
+// #define SAVE_IMAGES 1
 
 using namespace cv;
 using std::vector;
 using std::string;
+using std::multimap;
+using std::pair;
 using overhead_tracking::CleanupObjectArray;
 using overhead_tracking::CleanupObject;
 
@@ -55,17 +61,23 @@ const char OverheadTracker::DRAW_BOUNDARY_KEY = 'd';
 const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'k';
 const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
+const double OverheadTracker::MIN_DIST_THRESH = 500;
 
 OverheadTracker::OverheadTracker(String window_name) :
     object_center_color_(0, 255, 0),
     object_contour_color_(0, 0, 255),
     robot_contour_color_(255, 0, 0),
+    change_color_(255, 0, 255),
+    x_axis_color_(255, 255, 255),
+    y_axis_color_(0, 0, 0),
     boundary_color_(0, 255, 255),
     window_name_(window_name), drawing_boundary_(false),
-    min_contour_size_(0), tracking_(false), initialized_(false), run_count_(0)
+    min_contour_size_(0), tracking_(false), initialized_(false),
+    run_count_(0), next_id_(0)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
+  reused_ids_.clear();
 
   // Create a HighGUI window for displaying and controlling the tracker
   namedWindow(window_name_);
@@ -91,6 +103,7 @@ void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
     OverheadVisualObject obj;
+    obj.id = getId();
     obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
     obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
     obj.state.change.x = 0;
@@ -153,39 +166,28 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       }
     }
 
-
+    // Initialize tracking if it is currently not initialized
     if (!initialized_)
     {
       ROS_DEBUG("Initializing tracking on run %lu", run_count_);
-      initTracks(contours, object_moments);
       if (max_idx != -1)
       {
         initRobotTrack(contours[max_idx], object_moments[max_idx]);
+        object_moments.erase(object_moments.begin() + max_idx);
+        contours.erase(contours.begin() + max_idx);
       }
+      initTracks(contours, object_moments);
     }
-    else
+    else if(contours.size() > 0)
     {
-      ROS_DEBUG("Updating on run %lu", run_count_);
-      updateTracks(contours, object_moments);
+      ROS_DEBUG("Updating tracks on run %lu", run_count_);
       if (max_idx != -1)
       {
         updateRobotTrack(contours[max_idx], object_moments[max_idx]);
+        object_moments.erase(object_moments.begin() + max_idx);
+        contours.erase(contours.begin() + max_idx);
       }
-    }
-    // Remove Robot from set
-    if( max_idx != -1)
-    {
-      object_moments.erase(object_moments.begin() + max_idx);
-      contours.erase(contours.begin() + max_idx);
-    }
-
-    // Draw contour centers
-    for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
-    {
-      Point center(tracked_objects_[i].state.pose.x,
-                   tracked_objects_[i].state.pose.y);
-      circle(update_img, center, 4, object_center_color_, 2);
-      
+      updateTracks(contours, object_moments);
     }
 
     // Draw contours
@@ -194,25 +196,29 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
 
+    // Draw contour centers
+    for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
+    {
+      Point center(tracked_objects_[i].state.pose.x,
+                   tracked_objects_[i].state.pose.y);
+      circle(update_img, center, 4, object_center_color_, 2);
+      Point moved_center(tracked_objects_[i].state.pose.x -
+                         tracked_objects_[i].state.change.x,
+                         tracked_objects_[i].state.pose.y -
+                         tracked_objects_[i].state.change.y);
+      line(update_img, center, moved_center, change_color_, 2);
+    }
+
     if (tracked_robot_.state.pose.x != 0 || tracked_robot_.state.pose.y != 0)
     {
-      vector<vector<Point> > robot_contours;
-      robot_contours.push_back(tracked_robot_.contour);
-      drawContours(update_img, robot_contours, -1, robot_contour_color_, 2);
-      Point center(tracked_robot_.state.pose.x,
-                   tracked_robot_.state.pose.y);
-      circle(update_img, center, 4, robot_contour_color_, 2);
-
-      // Draw robot axes
-      // Moments m = tracked_robot_.moments;
-      // double theta_x = 0.5*atan2(2*m.mu11, m.mu20 - m.mu02);
-      // Point x_a(center.x + cos(theta_x)*100,
-      //           center.y + sin(theta_x)*100);
-      // Point y_a(center.x + cos(theta_x - M_PI/2.0)*100,
-      //           center.y + sin(theta_x - M_PI/2.0)*100);
-      // line(update_img, center, x_a, Scalar(255,0,255), 2);
-      // line(update_img, center, y_a, Scalar(0,255,0), 2);
+      drawRobot(update_img);
     }
+    std::stringstream filename;
+    filename << "/home/thermans/logs/tracking/track-" << (int) run_count_
+             << ".png";
+    #if SAVE_IMAGES
+    imwrite(filename.str(), update_img);
+    #endif
   }
 
   // Draw user defined boundaries
@@ -241,6 +247,13 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
 void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
                                    std::vector<cv::Moments>& object_moments)
 {
+  // Store nearest neighbors in a multimap incase multiple centers map to the
+  // same previous center
+  multimap<int, int> min_idx_map;
+  // Minimum distances are indexed by current object index
+  vector<double> min_dists;
+  vector<int> min_idx_vect;
+  double max_min_dist = 0;
   // Match new regions to previous ones
   for (unsigned int i = 0; i < object_moments.size() &&
            tracked_objects_.size() > 0; ++i)
@@ -250,10 +263,10 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     ROS_DEBUG("Scores for contour %u", i);
     for (unsigned int j = 0; j < tracked_objects_.size(); ++j)
     {
-      double dX = tracked_objects_[i].state.pose.x - (object_moments[j].m10 /
-                                                      object_moments[j].m00);
-      double dY = tracked_objects_[i].state.pose.y - (object_moments[j].m01 /
-                                                      object_moments[j].m00);
+      double dX = tracked_objects_[j].state.pose.x - (object_moments[i].m10 /
+                                                      object_moments[i].m00);
+      double dY = tracked_objects_[j].state.pose.y - (object_moments[i].m01 /
+                                                      object_moments[i].m00);
       double space_dist = sqrt(dX*dX + dY*dY);
       if (space_dist < min_space_dist)
       {
@@ -262,24 +275,116 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
       }
     }
     // We have found the mimimum score, update our instances...
-    ROS_DEBUG("Min spacial distnace is %le at point %u\n",
+    ROS_DEBUG("Min spacial distnace is %le at point %u",
               min_space_dist, min_space_idx);
+    if (min_space_dist > MIN_DIST_THRESH)
+    {
+      min_idx_vect.push_back(-1);
+      min_dists.push_back(0.0);
+      min_space_dist = 0.0;
+    }
+    else
+    {
+      min_idx_map.insert(pair<int,int>(min_space_idx, i));
+      min_idx_vect.push_back(min_space_idx);
+      min_dists.push_back(min_space_dist);
+    }
+    if (min_space_dist > max_min_dist)
+    {
+      max_min_dist = min_space_dist;
+    }
+
   }
 
-  // Now that we've matched tracks, clear the old ones and replace them with the
-  // new ones
-  tracked_objects_.clear();
+  // Sort out multiple objects mapped to the same previous object
+  for(unsigned int i = 0; i < tracked_objects_.size(); ++i)
+  {
+    if(min_idx_map.count(i) > 1)
+    {
+      // Find the minimum dist of all of the possible objects
+      multimap<int,int>::iterator it;
+      int min_k = -1;
+      vector<int> ks;
+      double min_space_dist = DBL_MAX;
+      for(it = min_idx_map.equal_range(i).first;
+          it != min_idx_map.equal_range(i).second; ++it)
+      {
+        int k = it->second;
+        ks.push_back(k);
+        if (min_dists[k] < min_space_dist)
+        {
+          min_k = k;
+          min_space_dist = min_dists[k];
+        }
+      }
+
+      // Those that aren't minimum dist, set to be new objects
+      for(unsigned int j = 0; j < ks.size(); ++j)
+      {
+        int k = ks[j];
+        if (k != min_k)
+        {
+          min_idx_vect[k] = -1;
+        }
+      }
+    }
+  }
+
+  vector<OverheadVisualObject> new_objects;
+  // Now that we've matched tracks update the current ones
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
+    int prev_idx = min_idx_vect[i];
+
     OverheadVisualObject obj;
     obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
     obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
-    obj.state.change.x = 0;
-    obj.state.change.y = 0;
     obj.moments = object_moments[i];
-    tracked_objects_.push_back(obj);
+    // This is a new object
+    if (prev_idx < 0 || prev_idx > static_cast<int>(tracked_objects_.size()))
+    {
+      obj.state.change.x = 0.0;
+      obj.state.change.y = 0.0;
+      new_objects.push_back(obj);
+    }
+    else
+    {
+      obj.state.change.x = obj.state.pose.x -
+          tracked_objects_[prev_idx].state.pose.x;
+      obj.state.change.y = obj.state.pose.y -
+          tracked_objects_[prev_idx].state.pose.y;
+      double recorded_dist = sqrt(obj.state.change.x * obj.state.change.x +
+                                  obj.state.change.y * obj.state.change.y);
+      if (recorded_dist > MIN_DIST_THRESH)
+      {
+        ROS_ERROR("Recorded distance of: %g at %i with prev point %i",
+                  recorded_dist, (int) i, prev_idx);
+        ROS_ERROR("Recorded min dist: %g", min_dists[i]);
+      }
+      tracked_objects_[prev_idx] = obj;
+    }
   }
 
+  // Now that matching is done, remove unmatched objects from the previous frame
+  unsigned int offset = 0;
+  for (unsigned int i = 0; i < tracked_objects_.size();)
+  {
+    if (min_idx_map.count(i + offset) < 1)
+    {
+      tracked_objects_.erase(tracked_objects_.begin() + i);
+      ++offset;
+    }
+    else
+    {
+      ++i;
+    }
+  }
+
+  // Now add new objects which were not matched to objects in the previos frame
+  for (unsigned int i = 0; i < new_objects.size(); ++i)
+  {
+    tracked_objects_.push_back(new_objects[i]);
+  }
 }
 
 
@@ -288,19 +393,54 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
 {
   double newX = robot_moments.m10 / robot_moments.m00;
   double newY = robot_moments.m01 / robot_moments.m00;
-  tracked_robot_.state.change.x = tracked_robot_.state.pose.x - newX;
-  tracked_robot_.state.change.y = tracked_robot_.state.pose.y - newY;
+  tracked_robot_.state.change.x = newX - tracked_robot_.state.pose.x;
+  tracked_robot_.state.change.y = newY - tracked_robot_.state.pose.y;
 
   tracked_robot_.state.pose.x = newX;
   tracked_robot_.state.pose.y = newY;
 
   tracked_robot_.contour = robot_contour;
   tracked_robot_.moments = robot_moments;
+
+  if ((tracked_robot_.state.change.x*tracked_robot_.state.change.x +
+       tracked_robot_.state.change.y*tracked_robot_.state.change.y) > 250000)
+  {
+    tracked_robot_.state.change.x = 0;
+    tracked_robot_.state.change.y = 0;
+  }
 }
 
 //
 // User IO Methods
 //
+void OverheadTracker::drawRobot(Mat& draw_on)
+{
+  vector<vector<Point> > robot_contours;
+  robot_contours.push_back(tracked_robot_.contour);
+  Point center(tracked_robot_.state.pose.x,
+               tracked_robot_.state.pose.y);
+  Point moved_center(tracked_robot_.state.pose.x -
+                     tracked_robot_.state.change.x,
+                     tracked_robot_.state.pose.y -
+                     tracked_robot_.state.change.y);
+  // Calculate robot axes
+  Moments m = tracked_robot_.moments;
+  double theta_x = 0.5*atan2(2*m.mu11, m.mu20 - m.mu02);
+  Point x_a(center.x + cos(theta_x)*100,
+            center.y + sin(theta_x)*100);
+  Point y_a(center.x + cos(theta_x - M_PI/2.0)*100,
+            center.y + sin(theta_x - M_PI/2.0)*100);
+
+  // Draw boundary
+  drawContours(draw_on, robot_contours, -1, robot_contour_color_, 2);
+  // Draw axes
+  line(draw_on, center, x_a, x_axis_color_, 2);
+  line(draw_on, center, y_a, y_axis_color_, 2);
+  // Draw Center
+  circle(draw_on, center, 4, robot_contour_color_, 2);
+  // Draw dX vector
+  line(draw_on, center, moved_center, change_color_, 2);
+}
 
 /**
  * Add a point to the currently building boundary contour
@@ -364,12 +504,13 @@ void OverheadTracker::onKeyCallback(char c)
     if (!tracking_)
     {
       tracking_ = true;
-      ROS_INFO("Tracking Began.");
+      ROS_INFO("Begining tracking.");
     }
     else
     {
       tracking_ = false;
       initialized_ = false;
+      tracked_objects_.clear();
       ROS_INFO("Tracking ended.");
     }
   }
@@ -426,55 +567,16 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
   }
 }
 
-//
-// Color Histogram Stuff
-//
-
-RGBHistogram::RGBHistogram(int r_bins, int g_bins, int b_bins) :
-    r_bins_(r_bins), g_bins_(g_bins), b_bins_(b_bins)
+int OverheadTracker::getId()
 {
+  if (reused_ids_.size() < 1)
+    return next_id_++;
+  int newId = reused_ids_[reused_ids_.size() - 1];
+  reused_ids_.pop_back();
+  return newId;
 }
 
-RGBHistogram::~RGBHistogram()
+void OverheadTracker::releaseId(int i)
 {
-}
-
-void RGBHistogram::createHist(Mat img)
-{
-  int hist_size[] = {r_bins_, g_bins_, b_bins_};
-  float range[] = {0, 256};
-  const float* ranges[] = {range, range, range};
-  int channels[] = {0,1,2};
-
-  calcHist( &img, 1, static_cast<int*>(channels), Mat(), // do not use mask
-            hist_, 2, static_cast<int*>(hist_size),
-            static_cast<const float**>(ranges), true, false );
-}
-
-void RGBHistogram::createHist(Mat img, vector<Point> contour)
-{
-  int hist_size[] = {r_bins_, g_bins_, b_bins_};
-  float range[] = {0, 256};
-  const float* ranges[] = {range, range, range};
-  int channels[] = {0,1,2};
-
-  // Build a mask from the contour
-  Mat mask(img.size(), CV_8UC1, Scalar(0));
-  Point* contour_p;
-  contour_p = contour.get_allocator().allocate(contour.size());
-  fillConvexPoly(mask, contour_p, contour.size(), Scalar(1));
-
-  calcHist( &img, 1, static_cast<int*>(channels), mask,
-            hist_, 2, static_cast<int*>(hist_size),
-            static_cast<const float**>(ranges), true, false);
-
-}
-
-double RGBHistogram::compareHists(RGBHistogram compare_hist)
-{
-  // CV_COMP_CORREL - Correlation
-  // CV_COMP_CHISQR - Chi-Square
-  // CV_COMP_INTERSECT - Intersection
-  // CV_COMP_BHATTACHARYYA - Bhattacharyya distance
-  return compareHist(hist_, *compare_hist.getHist(), CV_COMP_INTERSECT);
+  reused_ids_.push_back(i);
 }

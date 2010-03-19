@@ -43,42 +43,15 @@
 #include "geometry_msgs/Pose2D.h"
 
 //
-// Class to calculate and store color histograms of images and regions of images
-//
-class RGBHistogram
-{
- public:
-  // Constructors and destructors
-  RGBHistogram(int r_bins=16, int g_bins=16, int b_bins=16);
-  virtual ~RGBHistogram();
-
-  // Core functions
-  void createHist(cv::Mat img);
-  void createHist(cv::Mat img, std::vector<cv::Point> contour);
-  double compareHists(RGBHistogram compare_hist);
-
-  cv::MatND* getHist()
-  {
-    return &hist_;
-  }
-
- protected:
-  int r_bins_;
-  int g_bins_;
-  int b_bins_;
-  cv::MatND hist_;
-};
-
-//
 // Class to store all relevant information to a specific object being tracked.
 //
 class OverheadVisualObject
 {
  public:
   overhead_tracking::CleanupObject state;
-  RGBHistogram color;
   std::vector<cv::Point> contour;
   cv::Moments moments;
+  int id;
   OverheadVisualObject() {}
 };
 
@@ -107,6 +80,7 @@ class OverheadTracker
   static void onWindowClick(int event, int x, int y, int flags, void* param);
   void onKeyCallback(char c);
   void addBoundaryPoint(cv::Point pt);
+  void drawRobot(cv::Mat& draw_on);
 
   // Getters and setters
   bool addingContour() const
@@ -123,6 +97,10 @@ class OverheadTracker
   {
     return tracked_robot_.state.pose;
   }
+  // Protected methodsx
+ protected:
+  int getId();
+  void releaseId(int i);
   // Members
  protected:
   // Tracking members
@@ -135,6 +113,9 @@ class OverheadTracker
   cv::Scalar object_center_color_;
   cv::Scalar object_contour_color_;
   cv::Scalar robot_contour_color_;
+  cv::Scalar change_color_;
+  cv::Scalar x_axis_color_;
+  cv::Scalar y_axis_color_;
   cv::Scalar boundary_color_;
   std::string window_name_;
   bool drawing_boundary_;
@@ -144,6 +125,8 @@ class OverheadTracker
   bool tracking_;
   bool initialized_;
   unsigned long run_count_;
+  std::vector<int> reused_ids_;
+  int next_id_;
 
   // Constants
  public:
@@ -153,5 +136,6 @@ class OverheadTracker
   static const char CLEAR_BOUNDARIES_KEY;
   static const char CLEAR_WORKING_BOUNDARY_KEY;
   static const char TOGGLE_TRACKING_KEY;
+  static const double MIN_DIST_THRESH;
 };
 #endif // overhead_tracking_h_DEFINED
