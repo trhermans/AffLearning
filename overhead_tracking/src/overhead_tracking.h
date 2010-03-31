@@ -65,9 +65,11 @@ class OverheadTracker
   // Constructors
   OverheadTracker(std::string window_name, BgSubtract* bg);
 
-  // Core funcitons
+  // Callback control loop
   void updateDisplay(cv::Mat update_img,
                      std::vector<std::vector<cv::Point> > object_contours);
+ protected:
+  // Core funcitons
   void initTracks(std::vector<std::vector<cv::Point> >& object_contours,
                   std::vector<cv::Moments>& object_moments);
   void initRobotTrack(std::vector<cv::Point>& robot_contour,
@@ -76,13 +78,13 @@ class OverheadTracker
                     std::vector<cv::Moments>& object_moments);
   void updateRobotTrack(std::vector<cv::Point>& robot_contour,
                         cv::Moments& robot_moments);
-
   // User IO Methods
   static void onWindowClick(int event, int x, int y, int flags, void* param);
   void onKeyCallback(char c);
   void addBoundaryPoint(cv::Point pt);
   void drawRobot(cv::Mat& draw_on);
 
+ public:
   // Getters and setters
   bool addingContour() const
   {
@@ -98,10 +100,11 @@ class OverheadTracker
   {
     return tracked_robot_.state.pose;
   }
-  // Protected methodsx
+
  protected:
   int getId();
   void releaseId(int i);
+  void initializeOrientation();
 
   // Members
  protected:
@@ -130,6 +133,9 @@ class OverheadTracker
   unsigned long run_count_;
   std::vector<int> reused_ids_;
   int next_id_;
+  bool initializing_orientation_;
+  float orientation_offset_;
+  cv::Point init_orientation_center_;
 
   // Constants
  public:

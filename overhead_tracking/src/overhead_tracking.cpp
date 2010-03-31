@@ -67,6 +67,7 @@ const double OverheadTracker::MIN_DIST_THRESH = 500;
 
 OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     bg_(bg),
+    // IO Members
     object_center_color_(0, 255, 0),
     object_contour_color_(0, 0, 255),
     robot_contour_color_(255, 0, 0),
@@ -75,8 +76,11 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     y_axis_color_(0, 0, 0),
     boundary_color_(0, 255, 255),
     window_name_(window_name), drawing_boundary_(false),
+    // Tracking and state parameters
     min_contour_size_(0), tracking_(false), initialized_(false),
-    run_count_(0), next_id_(0)
+    run_count_(0), next_id_(0),
+    // Robot Orientation Stuff
+    initializing_orientation_(false), orientation_offset_(0.0f)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -431,7 +435,7 @@ void OverheadTracker::drawRobot(Mat& draw_on)
                      tracked_robot_.state.change.y);
   // Calculate robot axes
   Moments m = tracked_robot_.moments;
-  double theta_x = 0.5*atan2(2*m.mu11, m.mu20 - m.mu02);
+  double theta_x = 0.5*atan2(2*m.mu11, m.mu20 - m.mu02) + orientation_offset_;
   Point x_a(center.x + cos(theta_x)*100,
             center.y + sin(theta_x)*100);
   Point y_a(center.x + cos(theta_x - M_PI/2.0)*100,
@@ -486,10 +490,12 @@ void OverheadTracker::onKeyCallback(char c)
       }
       else
       {
-        ROS_ERR("Tracking key hit, but not doing anything!");
+        ROS_ERROR("Tracking key hit, but not doing anything!");
       }
       break;
     case INIT_ORIENTATION_KEY:
+      if(tracking_)
+        initializeOrientation();
       break;
     case DRAW_BOUNDARY_KEY:
       if (drawing_boundary_)
@@ -589,4 +595,28 @@ int OverheadTracker::getId()
 void OverheadTracker::releaseId(int i)
 {
   reused_ids_.push_back(i);
+}
+
+void OverheadTracker::initializeOrientation()
+{
+  if(initializing_orientation_)
+  {
+    // Save current center
+    float x_diff = tracked_robot_.state.pose.x - init_orientation_center_.x;
+    float y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
+
+    // Calculate offset
+    orientation_offset_ = atan2(y_diff, x_diff);
+    ROS_INFO("Set orientation offset to: %g", orientation_offset_);
+    initializing_orientation_ = false;
+  }
+  else
+  {
+    // Save current center
+    init_orientation_center_.x = tracked_robot_.state.pose.x;
+    init_orientation_center_.y = tracked_robot_.state.pose.y;
+
+    ROS_INFO("Saved initial orientation center");
+    initializing_orientation_ = true;
+  }
 }
