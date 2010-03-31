@@ -411,13 +411,18 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
 
   tracked_robot_.contour = robot_contour;
   tracked_robot_.moments = robot_moments;
-
   if ((tracked_robot_.state.change.x*tracked_robot_.state.change.x +
        tracked_robot_.state.change.y*tracked_robot_.state.change.y) > 250000)
   {
     tracked_robot_.state.change.x = 0;
     tracked_robot_.state.change.y = 0;
   }
+
+  // Get robot orientation
+  tracked_robot_.state.pose.theta = (0.5*atan2(2*robot_moments.mu11,
+                                               robot_moments.mu20 -
+                                               robot_moments.mu02) +
+                                     orientation_offset_);
 }
 
 //
@@ -433,13 +438,11 @@ void OverheadTracker::drawRobot(Mat& draw_on)
                      tracked_robot_.state.change.x,
                      tracked_robot_.state.pose.y -
                      tracked_robot_.state.change.y);
-  // Calculate robot axes
-  Moments m = tracked_robot_.moments;
-  double theta_x = 0.5*atan2(2*m.mu11, m.mu20 - m.mu02) + orientation_offset_;
-  Point x_a(center.x + cos(theta_x)*100,
-            center.y + sin(theta_x)*100);
-  Point y_a(center.x + cos(theta_x - M_PI/2.0)*100,
-            center.y + sin(theta_x - M_PI/2.0)*100);
+  // Calculate robot axes points
+  Point x_a(center.x + cos(tracked_robot_.state.pose.theta)*100,
+            center.y + sin(tracked_robot_.state.pose.theta)*100);
+  Point y_a(center.x + cos(tracked_robot_.state.pose.theta - M_PI/2.0)*100,
+            center.y + sin(tracked_robot_.state.pose.theta - M_PI/2.0)*100);
 
   // Draw boundary
   drawContours(draw_on, robot_contours, -1, robot_contour_color_, 2);
@@ -597,6 +600,15 @@ void OverheadTracker::releaseId(int i)
   reused_ids_.push_back(i);
 }
 
+/**
+ * Method to control setting the robot orientation offset.  On first call it
+ * stores the current robot (x,y)-center.  On second call it finds the current
+ * robot (x,y)-center and calculates the angle between the vector between the
+ * centers and the horizontal axis.  The current robot orientation estimate is
+ * subtracted from this and the orientation correction offset is stored.
+ *
+ * Subsequent calls iterate between these actions.
+ */
 void OverheadTracker::initializeOrientation()
 {
   if(initializing_orientation_)
@@ -606,7 +618,9 @@ void OverheadTracker::initializeOrientation()
     float y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
 
     // Calculate offset
-    orientation_offset_ = atan2(y_diff, x_diff);
+    float theta_hat = atan2(y_diff, x_diff);
+    orientation_offset_ = theta_hat - tracked_robot_.state.pose.theta;
+
     ROS_INFO("Set orientation offset to: %g", orientation_offset_);
     initializing_orientation_ = false;
   }
@@ -617,6 +631,7 @@ void OverheadTracker::initializeOrientation()
     init_orientation_center_.y = tracked_robot_.state.pose.y;
 
     ROS_INFO("Saved initial orientation center");
+    orientation_offset_ = 0.0f;
     initializing_orientation_ = true;
   }
 }
