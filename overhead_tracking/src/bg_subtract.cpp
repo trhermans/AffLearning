@@ -175,7 +175,7 @@ void BgSubtractGUI:: raiseDisplay()
  */
 void BgSubtractGUI::updateDisplay(Mat update_img)
 {
-  if( bg_sub_.hasBackgroundImg() )
+  if( bg_sub_.hasBackgroundImage() )
   {
     Mat to_display = bg_sub_.findFGContours(update_img, diff_thresh_);
     if (active_display_)

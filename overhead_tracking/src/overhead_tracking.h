@@ -41,6 +41,7 @@
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupObject.h"
 #include "geometry_msgs/Pose2D.h"
+#include "bg_subtract.h"
 
 //
 // Class to store all relevant information to a specific object being tracked.
@@ -62,7 +63,7 @@ class OverheadTracker
 {
  public:
   // Constructors
-  OverheadTracker(std::string window_name);
+  OverheadTracker(std::string window_name, BgSubtract* bg);
 
   // Core funcitons
   void updateDisplay(cv::Mat update_img,
@@ -101,9 +102,11 @@ class OverheadTracker
  protected:
   int getId();
   void releaseId(int i);
+
   // Members
  protected:
   // Tracking members
+  BgSubtract *bg_;
   std::vector<OverheadVisualObject> tracked_objects_;
   OverheadVisualObject tracked_robot_;
 
@@ -136,6 +139,7 @@ class OverheadTracker
   static const char CLEAR_BOUNDARIES_KEY;
   static const char CLEAR_WORKING_BOUNDARY_KEY;
   static const char TOGGLE_TRACKING_KEY;
+  static const char INIT_ORIENTATION_KEY;
   static const double MIN_DIST_THRESH;
 };
 #endif // overhead_tracking_h_DEFINED

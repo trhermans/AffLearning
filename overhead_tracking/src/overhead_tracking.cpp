@@ -38,12 +38,13 @@
 #include <sstream>
 
 // #define SAVE_IMAGES 1
-
+// #define SHOW_OBJ_IDS 1
 using namespace cv;
 using std::vector;
 using std::string;
 using std::multimap;
 using std::pair;
+using std::stringstream;
 using overhead_tracking::CleanupObjectArray;
 using overhead_tracking::CleanupObject;
 
@@ -61,9 +62,11 @@ const char OverheadTracker::DRAW_BOUNDARY_KEY = 'd';
 const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'k';
 const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
+const char OverheadTracker::INIT_ORIENTATION_KEY = 'o';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
 
-OverheadTracker::OverheadTracker(String window_name) :
+OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
+    bg_(bg),
     object_center_color_(0, 255, 0),
     object_contour_color_(0, 0, 255),
     robot_contour_color_(255, 0, 0),
@@ -207,18 +210,26 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
                          tracked_objects_[i].state.pose.y -
                          tracked_objects_[i].state.change.y);
       line(update_img, center, moved_center, change_color_, 2);
+
+#if SHOW_OBJ_IDS
+      Point text_base(center.x + 4, center.y+4);
+      stringstream num;
+      num << tracked_objects_[i].id;
+      putText(update_img, num.str(), text_base, FONT_HERSHEY_SIMPLEX, 1,
+              change_color_, 3);
+#endif
     }
 
     if (tracked_robot_.state.pose.x != 0 || tracked_robot_.state.pose.y != 0)
     {
       drawRobot(update_img);
     }
+#if SAVE_IMAGES
     std::stringstream filename;
     filename << "/home/thermans/logs/tracking/track-" << (int) run_count_
              << ".png";
-    #if SAVE_IMAGES
     imwrite(filename.str(), update_img);
-    #endif
+#endif
   }
 
   // Draw user defined boundaries
@@ -345,6 +356,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     {
       obj.state.change.x = 0.0;
       obj.state.change.y = 0.0;
+      obj.id = getId();
       new_objects.push_back(obj);
     }
     else
@@ -353,14 +365,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
           tracked_objects_[prev_idx].state.pose.x;
       obj.state.change.y = obj.state.pose.y -
           tracked_objects_[prev_idx].state.pose.y;
-      double recorded_dist = sqrt(obj.state.change.x * obj.state.change.x +
-                                  obj.state.change.y * obj.state.change.y);
-      if (recorded_dist > MIN_DIST_THRESH)
-      {
-        ROS_ERROR("Recorded distance of: %g at %i with prev point %i",
-                  recorded_dist, (int) i, prev_idx);
-        ROS_ERROR("Recorded min dist: %g", min_dists[i]);
-      }
+      obj.id = tracked_objects_[prev_idx].id;
       tracked_objects_[prev_idx] = obj;
     }
   }
@@ -371,6 +376,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   {
     if (min_idx_map.count(i + offset) < 1)
     {
+      releaseId(tracked_objects_[i].id);
       tracked_objects_.erase(tracked_objects_.begin() + i);
       ++offset;
     }
@@ -463,56 +469,60 @@ void OverheadTracker::addBoundaryPoint(Point pt)
 void OverheadTracker::onKeyCallback(char c)
 {
   // Perform actions corresponding to key presses
-  if (c == DRAW_BOUNDARY_KEY)
+  switch(c)
   {
-    if (drawing_boundary_)
-    {
-      ROS_INFO("Stopping boundary drawing.");
-      // Accept the current boundary as a contour
-      if (working_boundary_.size() >= MIN_NUM_CONTOUR_POINTS) {
-        boundary_contours_.push_back(working_boundary_);
-        ROS_INFO("Saved boundary.");
+    case TOGGLE_TRACKING_KEY:
+      if (!tracking_ && bg_->hasBackgroundImage())
+      {
+        tracking_ = true;
+        ROS_INFO("Begining tracking.");
+      }
+      else if(tracking_)
+      {
+        tracking_ = false;
+        initialized_ = false;
+        tracked_objects_.clear();
+        ROS_INFO("Tracking ended.");
       }
       else
       {
-        ROS_INFO("Boundary too small, discarding.");
+        ROS_ERR("Tracking key hit, but not doing anything!");
       }
+      break;
+    case INIT_ORIENTATION_KEY:
+      break;
+    case DRAW_BOUNDARY_KEY:
+      if (drawing_boundary_)
+      {
+        ROS_INFO("Stopping boundary drawing.");
+        // Accept the current boundary as a contour
+        if (working_boundary_.size() >= MIN_NUM_CONTOUR_POINTS) {
+          boundary_contours_.push_back(working_boundary_);
+          ROS_INFO("Saved boundary.");
+        }
+        else
+        {
+          ROS_INFO("Boundary too small, discarding.");
+        }
+        working_boundary_.clear();
+      }
+      else
+      {
+        ROS_INFO("Begining to draw boundary.");
+      }
+      // Toggle drawing boundary on and off
+      drawing_boundary_ = ! drawing_boundary_;
+      break;
+    case CLEAR_BOUNDARIES_KEY:
+      boundary_contours_.clear();
+      ROS_INFO("Cleared boundaries.");
+      break;
+    case CLEAR_WORKING_BOUNDARY_KEY:
       working_boundary_.clear();
-    }
-    else
-    {
-      ROS_INFO("Begining to draw boundary.");
-    }
-    // Toggle drawing boundary on and off
-    drawing_boundary_ = ! drawing_boundary_;
-  }
-
-  if (c == CLEAR_BOUNDARIES_KEY)
-  {
-    boundary_contours_.clear();
-    ROS_INFO("Cleared boundaries.");
-  }
-
-  if (c == CLEAR_WORKING_BOUNDARY_KEY)
-  {
-    working_boundary_.clear();
-    ROS_INFO("Cleared working boundary.");
-  }
-
-  if (c == TOGGLE_TRACKING_KEY)
-  {
-    if (!tracking_)
-    {
-      tracking_ = true;
-      ROS_INFO("Begining tracking.");
-    }
-    else
-    {
-      tracking_ = false;
-      initialized_ = false;
-      tracked_objects_.clear();
-      ROS_INFO("Tracking ended.");
-    }
+      ROS_INFO("Cleared working boundary.");
+      break;
+    default:
+      break;
   }
 }
 

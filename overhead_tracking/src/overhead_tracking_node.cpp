@@ -47,7 +47,7 @@ class OverheadTrackingNode
  public:
   // Constructors and Destructors
   OverheadTrackingNode(ros::NodeHandle &n) :
-      n_(n), it_(n), tracker_("Contour Window")
+      n_(n), it_(n), bg_gui_(), tracker_("Contour Window", &bg_gui_.bg_sub_)
   {
     image_sub_ = it_.subscribe("image_topic", 1,
                                &OverheadTrackingNode::imageCallback, this);
@@ -118,8 +118,8 @@ class OverheadTrackingNode
   sensor_msgs::CvBridge bridge_;
 
   ros::Publisher pose_pub, object_pub;
-  OverheadTracker tracker_;
   BgSubtractGUI bg_gui_;
+  OverheadTracker tracker_;
   cv::Mat current_img_;
   std::vector<std::vector<cv::Point> > contours_;
 };

@@ -58,7 +58,7 @@ class BgSubtract
   void removeBgImage();
 
   // Getters and Setters
-  bool hasBackgroundImg() const
+  bool hasBackgroundImage() const
   {
     return has_bg_img_;
   }
