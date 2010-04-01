@@ -134,7 +134,7 @@ class OverheadTracker
   std::vector<int> reused_ids_;
   int next_id_;
   bool initializing_orientation_;
-  float orientation_offset_;
+  double orientation_offset_;
   cv::Point init_orientation_center_;
 
   // Constants

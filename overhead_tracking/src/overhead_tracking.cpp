@@ -80,7 +80,7 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     min_contour_size_(0), tracking_(false), initialized_(false),
     run_count_(0), next_id_(0),
     // Robot Orientation Stuff
-    initializing_orientation_(false), orientation_offset_(0.0f)
+    initializing_orientation_(false), orientation_offset_(0.0)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -614,11 +614,11 @@ void OverheadTracker::initializeOrientation()
   if(initializing_orientation_)
   {
     // Save current center
-    float x_diff = tracked_robot_.state.pose.x - init_orientation_center_.x;
-    float y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
+    double x_diff = tracked_robot_.state.pose.x - init_orientation_center_.x;
+    double y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
 
     // Calculate offset
-    float theta_hat = atan2(y_diff, x_diff);
+    double theta_hat = atan2(y_diff, x_diff);
     orientation_offset_ = theta_hat - tracked_robot_.state.pose.theta;
 
     ROS_INFO("Set orientation offset to: %g", orientation_offset_);
@@ -631,7 +631,7 @@ void OverheadTracker::initializeOrientation()
     init_orientation_center_.y = tracked_robot_.state.pose.y;
 
     ROS_INFO("Saved initial orientation center");
-    orientation_offset_ = 0.0f;
+    orientation_offset_ = 0.0;
     initializing_orientation_ = true;
   }
 }
