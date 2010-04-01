@@ -190,6 +190,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     // Iterate through the contours, removing those with area less than min_size
     for (unsigned int i = 0; i < contours.size();)
     {
+      ROS_DEBUG("Removing small contours");
       Moments m;
       m = moments(contours[i]);
       if (m.m00 < min_contour_size_)
@@ -235,12 +236,14 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     // Draw contours
     if (contours.size() > 0)
     {
+      ROS_DEBUG("Drawing contours");
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
 
     // Draw contour centers
     for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
     {
+      ROS_DEBUG("Drawing contour centers");
       Point center(tracked_objects_[i].state.pose.x,
                    tracked_objects_[i].state.pose.y);
       circle(update_img, center, 4, object_center_color_, 2);
@@ -274,12 +277,14 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   // Draw user defined boundaries
   if (boundary_contours_.size() > 0)
   {
+    ROS_DEBUG("Drawing user boundaries");
     drawContours(update_img, boundary_contours_, -1,
                  boundary_color_, 2);
   }
 
   // Now show the updated image
   imshow(window_name_, update_img);
+  ROS_DEBUG("Key callback");
   char c = waitKey(3);
 
   onKeyCallback(c);
@@ -510,6 +515,7 @@ void OverheadTracker::addBoundaryPoint(Point pt)
   if (drawing_boundary_)
   {
     working_boundary_.push_back(pt);
+    ROS_INFO("Adding boundary point.");
   }
 }
 
