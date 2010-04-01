@@ -47,13 +47,7 @@ using std::pair;
 using std::stringstream;
 using overhead_tracking::CleanupObjectArray;
 using overhead_tracking::CleanupObject;
-
-inline int sign(double x)
-{
-  if(x < 0)
-    return -1;
-  return 1;
-}
+using geometry_msgs::Pose2D;
 
 // Constants
 const int OverheadTracker::MAX_MIN_SIZE = 1000;
@@ -64,6 +58,10 @@ const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
 const char OverheadTracker::INIT_ORIENTATION_KEY = 'o';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
+const int OverheadTracker::CAMERA_MAX_X = 1280; // Pixels
+const int OverheadTracker::CAMERA_MAX_Y = 960; // Pixels
+const double OverheadTracker::WORLD_MAX_X = 2.70; // Meters
+const double OverheadTracker::WORLD_MAX_Y = 2.05; // Meters
 
 OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     bg_(bg),
@@ -129,6 +127,43 @@ void OverheadTracker::initRobotTrack(vector<Point>& robot_contour,
   tracked_robot_.state.change.x = 0;
   tracked_robot_.state.change.y = 0;
   tracked_robot_.contour = robot_contour;
+}
+
+
+/**
+ * Method to control setting the robot orientation offset.  On first call it
+ * stores the current robot (x,y)-center.  On second call it finds the current
+ * robot (x,y)-center and calculates the angle between the vector between the
+ * centers and the horizontal axis.  The current robot orientation estimate is
+ * subtracted from this and the orientation correction offset is stored.
+ *
+ * Subsequent calls iterate between these actions.
+ */
+void OverheadTracker::initializeOrientation()
+{
+  if(initializing_orientation_)
+  {
+    // Save current center
+    double x_diff = tracked_robot_.state.pose.x - init_orientation_center_.x;
+    double y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
+
+    // Calculate offset
+    double theta_hat = atan2(y_diff, x_diff);
+    orientation_offset_ = theta_hat - tracked_robot_.state.pose.theta;
+
+    ROS_INFO("Set orientation offset to: %g", orientation_offset_);
+    initializing_orientation_ = false;
+  }
+  else
+  {
+    // Save current center
+    init_orientation_center_.x = tracked_robot_.state.pose.x;
+    init_orientation_center_.y = tracked_robot_.state.pose.y;
+
+    ROS_INFO("Saved initial orientation center");
+    orientation_offset_ = 0.0;
+    initializing_orientation_ = true;
+  }
 }
 
 /**
@@ -250,7 +285,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   onKeyCallback(c);
   run_count_++;
 }
-
 
 /**
  * Performs the matching between the previous frame contours and those found in
@@ -397,7 +431,12 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   }
 }
 
-
+/**
+ * Update the state of the robot for the current frame
+ *
+ * @param robot_contour Bounding contour of the robot
+ * @param robot_moments Moments from the contour.
+ */
 void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
                                        Moments& robot_moments)
 {
@@ -428,6 +467,12 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
 //
 // User IO Methods
 //
+
+/**
+ * Draw the robot contour, center, and axis on the image
+ *
+ * @param draw_on Image to be drawn on
+ */
 void OverheadTracker::drawRobot(Mat& draw_on)
 {
   vector<vector<Point> > robot_contours;
@@ -586,6 +631,11 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
   }
 }
 
+/**
+ * Get the next free ID for the tracked objects.
+ *
+ * @return The next current id
+ */
 int OverheadTracker::getId()
 {
   if (reused_ids_.size() < 1)
@@ -595,43 +645,82 @@ int OverheadTracker::getId()
   return newId;
 }
 
+/**
+ * Release the ID used by a now untracked object
+ *
+ * @param i The ID to release
+ */
 void OverheadTracker::releaseId(int i)
 {
   reused_ids_.push_back(i);
 }
 
+//
+// Methods to convert image coordinates to world coordinates
+// Instead of doing a calibration, this is just some cheap crap right now...
+//
+
 /**
- * Method to control setting the robot orientation offset.  On first call it
- * stores the current robot (x,y)-center.  On second call it finds the current
- * robot (x,y)-center and calculates the angle between the vector between the
- * centers and the horizontal axis.  The current robot orientation estimate is
- * subtracted from this and the orientation correction offset is stored.
+ * Translate x in image frame to x in the world frame
  *
- * Subsequent calls iterate between these actions.
+ * @param img_x The x location in the image
+ *
+ * @return The estimate of x in the world frame
  */
-void OverheadTracker::initializeOrientation()
+double OverheadTracker::imgXtoWorldX(double img_x)
 {
-  if(initializing_orientation_)
+  return img_x*WORLD_MAX_X/CAMERA_MAX_X;
+}
+
+/**
+ * Translate y in image frame to y in the world frame
+ *
+ * @param img_y The y location in the image
+ *
+ * @return The estimate of y in the world frame
+ */
+double OverheadTracker::imgYtoWorldY(double img_y)
+{
+  return img_y*WORLD_MAX_Y/CAMERA_MAX_Y;
+}
+
+//
+// Getters for tracked objects in world frame
+//
+
+/**
+ * Get the vector of cleanup objects in the world frame
+ *
+ * @return the array of cleanup objects
+ */
+CleanupObjectArray OverheadTracker::getCleanupObjects()
+{
+  CleanupObjectArray cleanup_objs;
+  for(unsigned int i = 0; i < tracked_objects_.size(); ++i)
   {
-    // Save current center
-    double x_diff = tracked_robot_.state.pose.x - init_orientation_center_.x;
-    double y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
+    CleanupObject obj;
+    obj.pose.x = imgXtoWorldX(tracked_objects_[i].state.pose.x);
+    obj.pose.y = imgYtoWorldY(tracked_objects_[i].state.pose.y);
+    obj.change.x = imgXtoWorldX(tracked_objects_[i].state.change.x);
+    obj.change.y = imgYtoWorldY(tracked_objects_[i].state.change.y);
 
-    // Calculate offset
-    double theta_hat = atan2(y_diff, x_diff);
-    orientation_offset_ = theta_hat - tracked_robot_.state.pose.theta;
-
-    ROS_INFO("Set orientation offset to: %g", orientation_offset_);
-    initializing_orientation_ = false;
+    cleanup_objs.objects.push_back(obj);
   }
-  else
-  {
-    // Save current center
-    init_orientation_center_.x = tracked_robot_.state.pose.x;
-    init_orientation_center_.y = tracked_robot_.state.pose.y;
 
-    ROS_INFO("Saved initial orientation center");
-    orientation_offset_ = 0.0;
-    initializing_orientation_ = true;
-  }
+  return cleanup_objs;
+}
+
+/**
+ * Get the pose of the robot in the world frame
+ *
+ * @return the pose of the robot in the world frame
+ */
+Pose2D OverheadTracker::getRobotPose()
+{
+  Pose2D world_pose;
+  world_pose.x = imgXtoWorldX(tracked_robot_.state.pose.x);
+  world_pose.y = imgYtoWorldY(tracked_robot_.state.pose.y);
+  world_pose.theta = tracked_robot_.state.pose.theta;
+
+  return world_pose;
 }

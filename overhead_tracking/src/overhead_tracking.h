@@ -96,15 +96,15 @@ class OverheadTracker
     return tracked_objects_;
   }
 
-  geometry_msgs::Pose2D getRobotPose()
-  {
-    return tracked_robot_.state.pose;
-  }
+  overhead_tracking::CleanupObjectArray getCleanupObjects();
+  geometry_msgs::Pose2D getRobotPose();
 
  protected:
   int getId();
   void releaseId(int i);
   void initializeOrientation();
+  double imgXtoWorldX(double img_x);
+  double imgYtoWorldY(double img_y);
 
   // Members
  protected:
@@ -147,5 +147,9 @@ class OverheadTracker
   static const char TOGGLE_TRACKING_KEY;
   static const char INIT_ORIENTATION_KEY;
   static const double MIN_DIST_THRESH;
+  static const int CAMERA_MAX_X;
+  static const int CAMERA_MAX_Y;
+  static const double WORLD_MAX_X;
+  static const double WORLD_MAX_Y;
 };
 #endif // overhead_tracking_h_DEFINED

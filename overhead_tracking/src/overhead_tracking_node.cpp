@@ -90,16 +90,7 @@ class OverheadTrackingNode
   void publishData()
   {
     pose_pub.publish(tracker_.getRobotPose());
-
-    // Convert visual objects to cleanup objects
-    std::vector<OverheadVisualObject> overhead_objs =
-        tracker_.getTrackedObjects();
-    overhead_tracking::CleanupObjectArray cleanup_objs;
-    for(unsigned int i = 0; i < overhead_objs.size(); ++i)
-    {
-      cleanup_objs.objects.push_back(overhead_objs[i].state);
-    }
-    object_pub.publish(cleanup_objs);
+    object_pub.publish(tracker_.getCleanupObjects());
   }
 
   void spin()
