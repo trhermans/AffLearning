@@ -37,8 +37,8 @@
 #include <map>
 #include <sstream>
 
-// #define SAVE_IMAGES 1
-// #define SHOW_OBJ_IDS 1
+//#define SAVE_IMAGES
+#define SHOW_OBJ_IDS
 using namespace cv;
 using std::vector;
 using std::string;
@@ -57,11 +57,22 @@ const char OverheadTracker::CLEAR_BOUNDARIES_KEY = 'k';
 const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
 const char OverheadTracker::INIT_ORIENTATION_KEY = 'o';
+const char OverheadTracker::PAUSE_TRACKING_KEY = 'p';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
 const int OverheadTracker::CAMERA_MAX_X = 1280; // Pixels
 const int OverheadTracker::CAMERA_MAX_Y = 960; // Pixels
 const double OverheadTracker::WORLD_MAX_X = 2.70; // Meters
 const double OverheadTracker::WORLD_MAX_Y = 2.05; // Meters
+
+inline int sign(double x)
+{
+  if (x < 0)
+    return -1;
+  else if (x > 0)
+    return 1;
+  else
+    return 0;
+}
 
 OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     bg_(bg),
@@ -70,15 +81,16 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     object_contour_color_(0, 0, 255),
     robot_contour_color_(255, 0, 0),
     change_color_(255, 0, 255),
-    x_axis_color_(255, 255, 255),
+    x_axis_color_(255, 0, 0),
     y_axis_color_(0, 0, 0),
     boundary_color_(0, 255, 255),
     window_name_(window_name), drawing_boundary_(false),
     // Tracking and state parameters
-    min_contour_size_(0), tracking_(false), initialized_(false),
-    run_count_(0), next_id_(0),
+    tracking_(false), initialized_(false), paused_(false),
+    min_contour_size_(0), run_count_(0), next_id_(0),
     // Robot Orientation Stuff
-    initializing_orientation_(false), orientation_offset_(0.0)
+    initializing_orientation_(false), orientation_offset_(0.0),
+    swap_orientation_(false)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -183,7 +195,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   vector<Moments> object_moments;
 
   // Update the object tracks before drawing the updates on the display
-  if (tracking_)
+  if (tracking_ && !paused_)
   {
     double max_size = 0;
     int max_idx = -1;
@@ -253,7 +265,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
                          tracked_objects_[i].state.change.y);
       line(update_img, center, moved_center, change_color_, 2);
 
-#if SHOW_OBJ_IDS
+#ifdef SHOW_OBJ_IDS
       Point text_base(center.x + 4, center.y+4);
       stringstream num;
       num << tracked_objects_[i].id;
@@ -266,11 +278,14 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     {
       drawRobot(update_img);
     }
-#if SAVE_IMAGES
-    std::stringstream filename;
-    filename << "/home/thermans/logs/tracking/track-" << (int) run_count_
-             << ".png";
-    imwrite(filename.str(), update_img);
+#ifdef SAVE_IMAGES
+    if(fabs(orientation_offset_) > 0.0)
+    {
+      std::stringstream filename;
+      filename << "/home/thermans/logs/tracking/track-" << (int) run_count_
+               << ".png";
+      imwrite(filename.str(), update_img);
+    }
 #endif
   }
 
@@ -463,10 +478,32 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
   }
 
   // Get robot orientation
-  tracked_robot_.state.pose.theta = (0.5*atan2(2*robot_moments.mu11,
-                                               robot_moments.mu20 -
-                                               robot_moments.mu02) +
-                                     orientation_offset_);
+  double theta_prime = (0.5*atan2(2*robot_moments.mu11, robot_moments.mu20 -
+                                  robot_moments.mu02) +
+                        orientation_offset_);
+
+  // If the orientation has switched signs since last frame and the theta is
+  // not near zero, then we need to switch whether we swap the orientation by
+  // pi radians
+  if ((sign(tracked_robot_.state.pose.theta) !=
+       sign(theta_prime))
+      &&
+      (fabs(tracked_robot_.state.pose.theta) > 1.0 ||
+       fabs(theta_prime) > 1.0))
+  {
+    swap_orientation_ = !swap_orientation_;
+    ROS_INFO("Swapping orientation direction");
+  }
+
+  // Swap the orientation by pi radians
+  if(swap_orientation_)
+  {
+    if(theta_prime > 0.0)
+      theta_prime = theta_prime - M_PI;
+    else
+      theta_prime = theta_prime + M_PI;
+  }
+  tracked_robot_.state.pose.theta = theta_prime;
 }
 
 //
@@ -539,12 +576,23 @@ void OverheadTracker::onKeyCallback(char c)
       {
         tracking_ = false;
         initialized_ = false;
+        paused_ = false;
         tracked_objects_.clear();
         ROS_INFO("Tracking ended.");
       }
       else
       {
         ROS_ERROR("Tracking key hit, but not doing anything!");
+      }
+      break;
+    case PAUSE_TRACKING_KEY:
+      if(tracking_)
+      {
+        paused_ = !paused_;
+        if(paused_)
+          ROS_INFO("Tracking paused.");
+        else
+          ROS_INFO("Tracking unpaused.");
       }
       break;
     case INIT_ORIENTATION_KEY:

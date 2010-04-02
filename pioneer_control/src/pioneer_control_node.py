@@ -79,10 +79,8 @@ class PioneerControlNode:
         rospy.spin()
 
 if __name__ == '__main__':
-
     controller = PioneerControlNode()
     controller.moved_ = False
     try:
         controller.run()
     except rospy.ROSInterruptException: pass
-

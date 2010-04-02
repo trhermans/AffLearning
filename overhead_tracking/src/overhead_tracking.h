@@ -127,15 +127,17 @@ class OverheadTracker
   bool drawing_boundary_;
 
   // Tracking and state parameters
-  int min_contour_size_;
   bool tracking_;
   bool initialized_;
+  bool paused_;
+  int min_contour_size_;
   unsigned long run_count_;
   std::vector<int> reused_ids_;
   int next_id_;
   bool initializing_orientation_;
   double orientation_offset_;
   cv::Point init_orientation_center_;
+  bool swap_orientation_;
 
   // Constants
  public:
@@ -146,6 +148,7 @@ class OverheadTracker
   static const char CLEAR_WORKING_BOUNDARY_KEY;
   static const char TOGGLE_TRACKING_KEY;
   static const char INIT_ORIENTATION_KEY;
+  static const char PAUSE_TRACKING_KEY;
   static const double MIN_DIST_THRESH;
   static const int CAMERA_MAX_X;
   static const int CAMERA_MAX_Y;
