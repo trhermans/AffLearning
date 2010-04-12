@@ -1,15 +1,10 @@
 <launch>
-  <machine name="robot" address="10.0.125.32"/>
+  <machine name="robot" address="p3dx" ros-root="/home/wall/ros/ros" user="wall" ros-package-path="/home/wall/ros/dev:/home/wall/ros/stacks:/home/wall/ros/usc-ros-pkg:/home/wall/ros/brown-ros-pkg"/>
   <node name="pioneer" machine="robot" pkg="p2os" type="p2os" output="screen">
-    <remap from="gripper_control" to="/gripper_command"/>
-    <remap from="cmd_vel" to="/velocity_command"/>
-    <remap from="cmd_motor_state" to="/motor_state_command"/>
-    <remap from="ptz_control" to="/ptz_command"/>
+    <remap from="gripper_control" to="/gripper_cmd"/>
+    <remap from="cmd_vel" to="/vel_cmd"/>
+    <remap from="cmd_motor_state" to="/motor_state_cmd"/>
+    <remap from="ptz_control" to="/ptz_cmd"/>
   </node>
-
-  <node name="pioneer_control" pkg="pioneer_control" type="pioneer_control_node.py" output="screen">
-    <remap from="gripper_status" to="/gripper_state"/>
-    <remap from="motor_status" to="/motor_state"/>
-    <remap from="ptz_status" to="/ptz_state"/>
-  </node>
+  <include file="$(find pioneer_control)/teleop_keyboard.launch"/>
 </launch>

@@ -39,7 +39,6 @@ class PioneerControlNode:
             self.gripControl(CMD)
             self.moved_ = True
 
-
     def motorCallback(self, motors):
         if motors.state == MOTORS_ON:
             # self.velControl()
@@ -68,10 +67,10 @@ class PioneerControlNode:
     def run(self):
         rospy.init_node("pioneer_control")
 
-        self.motor_pub_ = rospy.Publisher("motor_state_command", MotorState)
-        self.vel_pub_ = rospy.Publisher("velocity_command", Twist)
-        self.gripper_pub_ = rospy.Publisher("gripper_command", GripperState)
-        self.ptz_pub_ = rospy.Publisher("ptz_command", PTZState)
+        self.motor_pub_ = rospy.Publisher("motor_state_cmd", MotorState)
+        self.vel_pub_ = rospy.Publisher("velocity_cmd", Twist)
+        self.gripper_pub_ = rospy.Publisher("gripper_cmd", GripperState)
+        self.ptz_pub_ = rospy.Publisher("ptz_cmd", PTZState)
 
         rospy.Subscriber("gripper_status", GripperState, self.gripperCallback)
         rospy.Subscriber("motor_status", MotorState, self.motorCallback)
