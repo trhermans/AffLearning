@@ -10,9 +10,9 @@
       <param name="run_vel" value="1.0" />
       <param name="yaw_rate" value="1.0" />
       <param name="yaw_run_rate" value="1.5" />
-      <param name="pan_rate" value="1.5" />
-      <param name="tilt_rate" value="1.5" />
-      <param name="zoom_rate" value="1.5" />
+      <param name="pan_rate" value="5" />
+      <param name="tilt_rate" value="5" />
+      <param name="zoom_rate" value="5" />
     </node>
 </launch>
 

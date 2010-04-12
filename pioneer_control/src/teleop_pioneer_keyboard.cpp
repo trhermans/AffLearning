@@ -63,6 +63,7 @@
 #define KEYCODE_L 0x6C
 #define KEYCODE_U 0x75
 #define KEYCODE_O 0x6F
+#define KEYCODE_M 0x6D
 
 #define KEYCODE_A_CAP 0x41
 #define KEYCODE_D_CAP 0x44
@@ -100,7 +101,7 @@ class TeleopPioneerKeyboard
   {
     vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.angular.z = 0;
     ptz_cmd_.pan = ptz_cmd_.tilt = ptz_cmd_.zoom = 0;
-    ptz_cmd_.relative = true;
+    ptz_cmd_.relative = false;
     grip_cmd_.grip.state = grip_cmd_.lift.state = 0;
     motor_cmd_.state = MOTOR_OFF_VAL;
 
@@ -116,7 +117,7 @@ class TeleopPioneerKeyboard
     n_private.param("yaw_run_rate", yaw_rate_run_, 1.5);
     n_private.param("pan_rate", pan_rate_, 1.5);
     n_private.param("tilt_rate", tilt_rate_, 1.5);
-    n_private.param("tilt_rate", zoom_rate_, 1.5);
+    n_private.param("zoom_rate", zoom_rate_, 1.5);
   }
 
   ~TeleopPioneerKeyboard()   { }
@@ -189,6 +190,11 @@ void TeleopPioneerKeyboard::keyboardLoop()
     vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.angular.z = 0;
     ptz_cmd_.pan = ptz_cmd_.tilt = ptz_cmd_.zoom = 0;
 
+    motor_dirty = false;
+    //vel_dirty = false;
+    gripper_dirty = false;
+    ptz_dirty = false;
+
     switch(c)
     {
       // Motor state
@@ -259,26 +265,39 @@ void TeleopPioneerKeyboard::keyboardLoop()
         // PTZ
       case KEYCODE_I:
         ptz_cmd_.tilt = tilt_rate_;
+        ptz_cmd_.relative = true;
         ptz_dirty = true;
         break;
       case KEYCODE_K:
         ptz_cmd_.tilt = -tilt_rate_;
+        ptz_cmd_.relative = true;
         ptz_dirty = true;
         break;
       case KEYCODE_J:
-        ptz_cmd_.pan = pan_rate_;
+        ptz_cmd_.pan = -pan_rate_;
+        ptz_cmd_.relative = true;
         ptz_dirty = true;
         break;
       case KEYCODE_L:
-        ptz_cmd_.pan = -pan_rate_;
+        ptz_cmd_.pan = pan_rate_;
+        ptz_cmd_.relative = true;
         ptz_dirty = true;
         break;
       case KEYCODE_U:
         ptz_cmd_.zoom = -zoom_rate_;
+        ptz_cmd_.relative = true;
         ptz_dirty = true;
         break;
       case KEYCODE_O:
         ptz_cmd_.zoom = zoom_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
+      case KEYCODE_M:
+        ptz_cmd_.pan = 0;
+        ptz_cmd_.tilt = 0;
+        ptz_cmd_.zoom = 0;
+        ptz_cmd_.relative = false;
         ptz_dirty = true;
         break;
       default:
