@@ -12,10 +12,10 @@
       <param name="yaw_run_rate" value="1.5" />
       <param name="pan_rate" value="5" />
       <param name="tilt_rate" value="5" />
-      <param name="zoom_rate" value="5" />
+      <param name="zoom_rate" value="196" />
       <param name="fast_pan_rate" value="20" />
       <param name="fast_tilt_rate" value="20" />
-      <param name="fast_zoom_rate" value="20" />
+      <param name="fast_zoom_rate" value="392" />
     </node>
 </launch>
 

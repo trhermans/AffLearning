@@ -130,10 +130,10 @@ class TeleopPioneerKeyboard
     n_private.param("yaw_run_rate", yaw_rate_run_, 1.5);
     n_private.param("pan_rate", pan_rate_, 5.0);
     n_private.param("tilt_rate", tilt_rate_, 5.0);
-    n_private.param("zoom_rate", zoom_rate_, 5.0);
+    n_private.param("zoom_rate", zoom_rate_, 196.0);
     n_private.param("fast_pan_rate", fast_pan_rate_, 20.0);
     n_private.param("fast_tilt_rate", fast_tilt_rate_, 20.0);
-    n_private.param("fast_zoom_rate", fast_zoom_rate_, 20.0);
+    n_private.param("fast_zoom_rate", fast_zoom_rate_, 392.0);
   }
 
   ~TeleopPioneerKeyboard()   { }
