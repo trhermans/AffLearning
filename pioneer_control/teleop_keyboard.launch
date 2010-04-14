@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="pioneer_control" type="teleop_pioneer_keyboard" name="spawn_teleop_keyboard" output="screen">
+    <node pkg="pioneer_control" type="teleop_pioneer_keyboard" name="teleop_keyboard" output="screen">
       <remap from="vel_cmd" to="base_controller/command" />
       <remap from="motor_state_cmd" to="/motor_state_cmd"/>
       <remap from="vel_cmd" to="/vel_cmd"/>
@@ -13,6 +13,9 @@
       <param name="pan_rate" value="5" />
       <param name="tilt_rate" value="5" />
       <param name="zoom_rate" value="5" />
+      <param name="fast_pan_rate" value="20" />
+      <param name="fast_tilt_rate" value="20" />
+      <param name="fast_zoom_rate" value="20" />
     </node>
 </launch>
 

@@ -44,19 +44,28 @@
 #include <p2os/MotorState.h>
 #include <p2os/PTZState.h>
 
+// Motor State
 #define KEYCODE_P 0x70
 
+// Drive Commands
 #define KEYCODE_A 0x61
 #define KEYCODE_D 0x64
 #define KEYCODE_S 0x73
 #define KEYCODE_W 0x77
 
+#define KEYCODE_A_CAP 0x41
+#define KEYCODE_D_CAP 0x44
+#define KEYCODE_S_CAP 0x53
+#define KEYCODE_W_CAP 0x57
+
+// Gripper
 #define KEYCODE_F 0x66
 #define KEYCODE_G 0x67
 #define KEYCODE_R 0x72
 #define KEYCODE_T 0x74
 #define KEYCODE_B 0x62
 
+// PTZ
 #define KEYCODE_I 0x69
 #define KEYCODE_K 0x6B
 #define KEYCODE_J 0x6A
@@ -65,10 +74,13 @@
 #define KEYCODE_O 0x6F
 #define KEYCODE_M 0x6D
 
-#define KEYCODE_A_CAP 0x41
-#define KEYCODE_D_CAP 0x44
-#define KEYCODE_S_CAP 0x53
-#define KEYCODE_W_CAP 0x57
+#define KEYCODE_I_CAP 0x49
+#define KEYCODE_K_CAP 0x4B
+#define KEYCODE_J_CAP 0x4A
+#define KEYCODE_L_CAP 0x4C
+#define KEYCODE_U_CAP 0x55
+#define KEYCODE_O_CAP 0x4F
+#define KEYCODE_M_CAP 0x4D
 
 // Encoded parameters
 #define MOTOR_ON_VAL  4
@@ -85,6 +97,7 @@ class TeleopPioneerKeyboard
  private:
   double walk_vel_, run_vel_, yaw_rate_, yaw_rate_run_;
   double pan_rate_, tilt_rate_, zoom_rate_;
+  double fast_pan_rate_, fast_tilt_rate_, fast_zoom_rate_;
   geometry_msgs::Twist vel_cmd_;
   p2os::MotorState motor_cmd_;
   p2os::GripperState grip_cmd_;
@@ -115,9 +128,12 @@ class TeleopPioneerKeyboard
     n_private.param("run_vel", run_vel_, 1.0);
     n_private.param("yaw_rate", yaw_rate_, 1.0);
     n_private.param("yaw_run_rate", yaw_rate_run_, 1.5);
-    n_private.param("pan_rate", pan_rate_, 1.5);
-    n_private.param("tilt_rate", tilt_rate_, 1.5);
-    n_private.param("zoom_rate", zoom_rate_, 1.5);
+    n_private.param("pan_rate", pan_rate_, 5.0);
+    n_private.param("tilt_rate", tilt_rate_, 5.0);
+    n_private.param("zoom_rate", zoom_rate_, 5.0);
+    n_private.param("fast_pan_rate", fast_pan_rate_, 20.0);
+    n_private.param("fast_tilt_rate", fast_tilt_rate_, 20.0);
+    n_private.param("fast_zoom_rate", fast_zoom_rate_, 20.0);
   }
 
   ~TeleopPioneerKeyboard()   { }
@@ -293,7 +309,38 @@ void TeleopPioneerKeyboard::keyboardLoop()
         ptz_cmd_.relative = true;
         ptz_dirty = true;
         break;
+      case KEYCODE_I_CAP:
+        ptz_cmd_.tilt = fast_tilt_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
+      case KEYCODE_K_CAP:
+        ptz_cmd_.tilt = -fast_tilt_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
+      case KEYCODE_J_CAP:
+        ptz_cmd_.pan = -fast_pan_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
+      case KEYCODE_L_CAP:
+        ptz_cmd_.pan = fast_pan_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
+      case KEYCODE_U_CAP:
+        ptz_cmd_.zoom = -fast_zoom_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
+      case KEYCODE_O_CAP:
+        ptz_cmd_.zoom = fast_zoom_rate_;
+        ptz_cmd_.relative = true;
+        ptz_dirty = true;
+        break;
       case KEYCODE_M:
+      case KEYCODE_M_CAP:
         ptz_cmd_.pan = 0;
         ptz_cmd_.tilt = 0;
         ptz_cmd_.zoom = 0;
