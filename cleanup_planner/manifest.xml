@@ -1,0 +1,16 @@
+<package>
+  <description brief="cleanup_planner">
+
+     cleanup_planner
+
+  </description>
+  <author>Tucker Hermans</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/cleanup_planner</url>
+  <depend package="overhead_tracking"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+
