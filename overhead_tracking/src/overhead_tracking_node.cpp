@@ -51,8 +51,8 @@ class OverheadTrackingNode
   {
     image_sub_ = it_.subscribe("image_topic", 1,
                                &OverheadTrackingNode::imageCallback, this);
-    pose_pub = n_.advertise<geometry_msgs::Pose2D>("robot_pose", 1000);
-    object_pub = n_.advertise<overhead_tracking::CleanupObjectArray>(
+    pose_pub_ = n_.advertise<geometry_msgs::Pose2D>("robot_pose", 1000);
+    object_pub_ = n_.advertise<overhead_tracking::CleanupObjectArray>(
         "cleanup_objects", 1000);
   }
 
@@ -89,14 +89,13 @@ class OverheadTrackingNode
 
   void publishData()
   {
-    pose_pub.publish(tracker_.getRobotPose());
-    object_pub.publish(tracker_.getCleanupObjects());
+    pose_pub_.publish(tracker_.getRobotPose());
+    object_pub_.publish(tracker_.getCleanupObjects());
   }
 
   void spin()
   {
-    while(n_.ok())
-    {
+    while(n_.ok()) {
       publishData();
       ros::spinOnce();
     }
@@ -108,7 +107,7 @@ class OverheadTrackingNode
   image_transport::Subscriber image_sub_;
   sensor_msgs::CvBridge bridge_;
 
-  ros::Publisher pose_pub, object_pub;
+  ros::Publisher pose_pub_, object_pub_;
   BgSubtractGUI bg_gui_;
   OverheadTracker tracker_;
   cv::Mat current_img_;
