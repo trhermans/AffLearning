@@ -6,6 +6,8 @@
     <remap from="cmd_vel" to="/vel_cmd"/>
     <remap from="cmd_motor_state" to="/motor_state_cmd"/>
     <remap from="ptz_control" to="/ptz_cmd"/>
+
+    <param name="use_sonar" type="bool" value="true"/>
   </node>
   <node name="pioneer_camera" pkg="probe" type="probe" machine="robot">
     <env name="PROBE_CONFIG" value="v4l2src device=/dev/video0 ! video/x-raw-rgb ! ffmpegcolorspace ! identity name=ros ! fakesink"/>
