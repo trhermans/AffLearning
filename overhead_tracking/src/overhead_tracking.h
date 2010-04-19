@@ -140,6 +140,7 @@ class OverheadTracker
   bool initializing_orientation_;
   double orientation_offset_;
   cv::Point init_orientation_center_;
+  bool finished_orientation_init_;
   bool swap_orientation_;
 
   // Constants

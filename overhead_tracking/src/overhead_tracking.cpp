@@ -93,7 +93,7 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     min_contour_size_(0), run_count_(0), next_id_(0),
     // Robot Orientation Stuff
     initializing_orientation_(false), orientation_offset_(0.0),
-    swap_orientation_(false)
+    finished_orientation_init_(false), swap_orientation_(false)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -169,6 +169,7 @@ void OverheadTracker::initializeOrientation()
 
     ROS_INFO("Set orientation offset to: %g", orientation_offset_);
     initializing_orientation_ = false;
+    finished_orientation_init_ = true;
   }
   else
   {
@@ -260,7 +261,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       ROS_DEBUG("Drawing contours");
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
-    
+
     ROS_DEBUG("Drawing contour centers");
     // Draw contour centers
     for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
@@ -505,27 +506,49 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
                                   robot_moments.mu02) +
                         orientation_offset_);
 
-  // If the orientation has switched signs since last frame and the theta is
-  // not near zero, then we need to switch whether we swap the orientation by
-  // pi radians
-  if ((sign(tracked_robot_.state.pose.theta) !=
-       sign(theta_prime))
-      &&
-      (fabs(tracked_robot_.state.pose.theta) > 1.0 ||
-       fabs(theta_prime) > 1.0))
-  {
-    swap_orientation_ = !swap_orientation_;
-    ROS_INFO("Swapping orientation direction");
-  }
-
   // Swap the orientation by pi radians
-  if(swap_orientation_)
+  if(swap_orientation_ && !initializing_orientation_ )
   {
     if(theta_prime > 0.0)
-      theta_prime = theta_prime + M_PI;
-    else
       theta_prime = theta_prime - M_PI;
+    else
+      theta_prime = theta_prime + M_PI;
   }
+
+  if (finished_orientation_init_)
+  {
+    // Don't worry about swapping if we just finished initializing
+    finished_orientation_init_ = false;
+    if (swap_orientation_)
+    {
+      if(theta_prime > 0.0)
+        theta_prime = theta_prime - M_PI;
+      else
+        theta_prime = theta_prime + M_PI;
+    }
+    swap_orientation_ = false;
+  }
+  else if( !initializing_orientation_)
+  {
+    // If the orientation has switched signs since last frame and the theta is
+    // not near zero, then we need to switch whether we swap the orientation by
+    // pi radians
+    if ((sign(tracked_robot_.state.pose.theta) != sign(theta_prime))
+        &&
+        (fabs(tracked_robot_.state.pose.theta) > 1.0 || fabs(theta_prime) > 1.0)
+        )
+    {
+      swap_orientation_ = !swap_orientation_;
+      ROS_INFO("Swapping orientation direction to %d", swap_orientation_);
+
+      // We either need to swap or need to undo the swap
+      if(theta_prime > 0.0)
+        theta_prime = theta_prime - M_PI;
+      else
+        theta_prime = theta_prime + M_PI;
+    }
+  }
+
   ROS_DEBUG("Updating robot state.");
   tracked_robot_.state.pose.theta = theta_prime;
   ROS_DEBUG("Updated robot state.");
