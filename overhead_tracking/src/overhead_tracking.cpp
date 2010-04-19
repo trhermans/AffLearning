@@ -50,6 +50,7 @@ using overhead_tracking::CleanupObject;
 using geometry_msgs::Pose2D;
 
 // Constants
+// Bg keys used are 'c', 'e', 'a'
 const int OverheadTracker::MAX_MIN_SIZE = 1000;
 const unsigned int OverheadTracker::MIN_NUM_CONTOUR_POINTS = 3;
 const char OverheadTracker::DRAW_BOUNDARY_KEY = 'd';
@@ -58,6 +59,7 @@ const char OverheadTracker::CLEAR_WORKING_BOUNDARY_KEY = 'w';
 const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
 const char OverheadTracker::INIT_ORIENTATION_KEY = 'o';
 const char OverheadTracker::PAUSE_TRACKING_KEY = 'p';
+const char OverheadTracker::CLEAR_WAYPOINT_KEY = 'z';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
 const int OverheadTracker::CAMERA_MAX_X = 1280; // Pixels
 const int OverheadTracker::CAMERA_MAX_Y = 960; // Pixels
@@ -84,6 +86,7 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     x_axis_color_(255, 0, 0),
     y_axis_color_(0, 0, 0),
     boundary_color_(0, 255, 255),
+    waypoint_color_(255, 0, 255),
     window_name_(window_name), drawing_boundary_(false),
     // Tracking and state parameters
     tracking_(false), initialized_(false), paused_(false),
@@ -94,6 +97,7 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
 {
   boundary_contours_.clear();
   working_boundary_.clear();
+  waypoints_.clear();
   reused_ids_.clear();
 
   // Create a HighGUI window for displaying and controlling the tracker
@@ -193,6 +197,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   Mat update_img;
   update_img_raw.copyTo(update_img);
   vector<Moments> object_moments;
+  object_moments.clear();
 
   // Update the object tracks before drawing the updates on the display
   if (tracking_ && !paused_)
@@ -202,7 +207,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     // Iterate through the contours, removing those with area less than min_size
     for (unsigned int i = 0; i < contours.size();)
     {
-      ROS_DEBUG("Removing small contours");
       Moments m;
       m = moments(contours[i]);
       if (m.m00 < min_contour_size_)
@@ -220,6 +224,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
         ++i;
       }
     }
+    ROS_DEBUG("Removed small contours");
 
     // Initialize tracking if it is currently not initialized
     if (!initialized_)
@@ -240,9 +245,13 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       {
         updateRobotTrack(contours[max_idx], object_moments[max_idx]);
         object_moments.erase(object_moments.begin() + max_idx);
+        ROS_DEBUG("Erased robot moments");
         contours.erase(contours.begin() + max_idx);
+        ROS_DEBUG("Erased robot contours");
       }
+      ROS_DEBUG("Updating object tracks");
       updateTracks(contours, object_moments);
+      ROS_DEBUG("Updated object tracks");
     }
 
     // Draw contours
@@ -251,11 +260,11 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       ROS_DEBUG("Drawing contours");
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
-
+    
+    ROS_DEBUG("Drawing contour centers");
     // Draw contour centers
     for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
     {
-      ROS_DEBUG("Drawing contour centers");
       Point center(tracked_objects_[i].state.pose.x,
                    tracked_objects_[i].state.pose.y);
       circle(update_img, center, 4, object_center_color_, 2);
@@ -297,9 +306,16 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
                  boundary_color_, 2);
   }
 
+  // Draw user defined boundaries
+  if (waypoints_.size() > 0)
+  {
+    ROS_DEBUG("Drawing waypoints boundaries");
+    circle(update_img, waypoints_[0], 2, waypoint_color_, 4);
+    circle(update_img, waypoints_[0], 16, waypoint_color_, 2);
+  }
+
   // Now show the updated image
   imshow(window_name_, update_img);
-  ROS_DEBUG("Key callback");
   char c = waitKey(3);
 
   onKeyCallback(c);
@@ -324,6 +340,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   vector<int> min_idx_vect;
   double max_min_dist = 0;
   // Match new regions to previous ones
+  ROS_DEBUG("Finding nearest objects");
   for (unsigned int i = 0; i < object_moments.size() &&
            tracked_objects_.size() > 0; ++i)
   {
@@ -365,6 +382,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
 
   }
 
+  ROS_DEBUG("Sorting multiple objects");
   // Sort out multiple objects mapped to the same previous object
   for(unsigned int i = 0; i < tracked_objects_.size(); ++i)
   {
@@ -399,12 +417,15 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     }
   }
 
+  ROS_DEBUG("Updating objects");
   vector<OverheadVisualObject> new_objects;
   // Now that we've matched tracks update the current ones
-  for (unsigned int i = 0; i < object_moments.size(); ++i)
+  for (unsigned int i = 0; i < object_moments.size() && i < min_idx_vect.size();
+       ++i)
   {
+    ROS_DEBUG("Getting previous index for i = %d", i);
     int prev_idx = min_idx_vect[i];
-
+    ROS_DEBUG("Previous index was: %d", prev_idx);
     OverheadVisualObject obj;
     obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
     obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
@@ -428,6 +449,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     }
   }
 
+  ROS_DEBUG("Remove unmatched objects");
   // Now that matching is done, remove unmatched objects from the previous frame
   unsigned int offset = 0;
   for (unsigned int i = 0; i < tracked_objects_.size();)
@@ -444,6 +466,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     }
   }
 
+  ROS_DEBUG("Add new objects");
   // Now add new objects which were not matched to objects in the previos frame
   for (unsigned int i = 0; i < new_objects.size(); ++i)
   {
@@ -499,11 +522,13 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
   if(swap_orientation_)
   {
     if(theta_prime > 0.0)
-      theta_prime = theta_prime - M_PI;
-    else
       theta_prime = theta_prime + M_PI;
+    else
+      theta_prime = theta_prime - M_PI;
   }
+  ROS_DEBUG("Updating robot state.");
   tracked_robot_.state.pose.theta = theta_prime;
+  ROS_DEBUG("Updated robot state.");
 }
 
 //
@@ -563,8 +588,7 @@ void OverheadTracker::addBoundaryPoint(Point pt)
  */
 void OverheadTracker::setRobotWaypoint(Point pt)
 {
-  // Draw the point on the screen
-
+  waypoints_.push_back(pt);
   // Convert to global coordinates
 
   // Publish over ros
@@ -612,6 +636,9 @@ void OverheadTracker::onKeyCallback(char c)
     case INIT_ORIENTATION_KEY:
       if(tracking_)
         initializeOrientation();
+      break;
+    case CLEAR_WAYPOINT_KEY:
+      waypoints_.clear();
       break;
     case DRAW_BOUNDARY_KEY:
       if (drawing_boundary_)

@@ -117,6 +117,7 @@ class OverheadTracker
   // User IO members
   std::vector<std::vector<cv::Point> > boundary_contours_;
   std::vector<cv::Point> working_boundary_;
+  std::vector<cv::Point> waypoints_;
   cv::Scalar object_center_color_;
   cv::Scalar object_contour_color_;
   cv::Scalar robot_contour_color_;
@@ -124,6 +125,7 @@ class OverheadTracker
   cv::Scalar x_axis_color_;
   cv::Scalar y_axis_color_;
   cv::Scalar boundary_color_;
+  cv::Scalar waypoint_color_;
   std::string window_name_;
   bool drawing_boundary_;
 
@@ -150,6 +152,7 @@ class OverheadTracker
   static const char TOGGLE_TRACKING_KEY;
   static const char INIT_ORIENTATION_KEY;
   static const char PAUSE_TRACKING_KEY;
+  static const char CLEAR_WAYPOINT_KEY;
   static const double MIN_DIST_THRESH;
   static const int CAMERA_MAX_X;
   static const int CAMERA_MAX_Y;
