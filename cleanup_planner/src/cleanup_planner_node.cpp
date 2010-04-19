@@ -12,6 +12,8 @@ class CleanupPlannerNode
                                     &CleanupPlannerNode::objectCallback, this);
     robot_pose_sub_ = n_.subscribe("robot_pose", 1,
                                   &CleanupPlannerNode::robotPoseCallback, this);
+    goal_pose_sub_ = n_.subscribe("goal_pose", 1,
+                                  &CleanupPlannerNode::robotPoseCallback, this);
   }
 
   void objectCallback(const overhead_tracking::CleanupObjectArrayConstPtr &msg)
@@ -22,10 +24,18 @@ class CleanupPlannerNode
   {
   }
 
+  void goalPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
+  {
+  }
+
   void spin()
   {
     while(n_.ok()) {
-      
+      // Check if we have a new goal
+
+      // Check if we have arrived at our goal
+
+      // Check 
       ros::spinOnce();
     }
   }
@@ -33,7 +43,9 @@ class CleanupPlannerNode
  protected:
   ros::Subscriber cleanup_objs_sub_;
   ros::Subscriber robot_pose_sub_;
+  ros::Subscriber goal_pose_sub_;
   ros::NodeHandle n_;
+  MotionPlanner mp_;
 };
 
 int main(int argc, char** argv)
