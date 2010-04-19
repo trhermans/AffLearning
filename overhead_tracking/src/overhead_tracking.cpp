@@ -557,6 +557,20 @@ void OverheadTracker::addBoundaryPoint(Point pt)
 }
 
 /**
+ * Method to draw a waypoint for the robot and publish it over ROS
+ *
+ * @param pt The on screen point clicked by the user
+ */
+void OverheadTracker::setRobotWaypoint(Point pt)
+{
+  // Draw the point on the screen
+
+  // Convert to global coordinates
+
+  // Publish over ros
+}
+
+/**
  * Perform the requist action dependent on the user input key
  *
  * @param c The input key
@@ -649,10 +663,6 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
   OverheadTracker * tracker;
   tracker = reinterpret_cast<OverheadTracker*>(param);
 
-  if (!tracker->addingContour())
-  {
-    return;
-  }
 
   Point pt(x,y);
 
@@ -673,6 +683,10 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
     case CV_EVENT_RBUTTONDBLCLK:
       break;
     case CV_EVENT_LBUTTONDBLCLK:
+      if (!tracker->addingContour())
+      {
+        tracker->setRobotWaypoint(pt);
+      }
       // Add the current point to the current contour
       tracker->addBoundaryPoint(pt);
       break;

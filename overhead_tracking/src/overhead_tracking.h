@@ -82,6 +82,7 @@ class OverheadTracker
   static void onWindowClick(int event, int x, int y, int flags, void* param);
   void onKeyCallback(char c);
   void addBoundaryPoint(cv::Point pt);
+  void setRobotWaypoint(cv::Point pt);
   void drawRobot(cv::Mat& draw_on);
 
  public:
