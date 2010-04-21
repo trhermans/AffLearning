@@ -340,7 +340,6 @@ void TeleopPioneerKeyboard::keyboardLoop()
         ptz_dirty = true;
         break;
       case KEYCODE_M:
-      case KEYCODE_M_CAP:
         ptz_cmd_.pan = 0;
         ptz_cmd_.tilt = 0;
         ptz_cmd_.zoom = 0;

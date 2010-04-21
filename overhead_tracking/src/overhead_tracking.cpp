@@ -842,3 +842,21 @@ Pose2D OverheadTracker::getRobotPose()
 
   return world_pose;
 }
+
+Pose2D OverheadTracker::getGoalPose()
+{
+  Pose2D goal_pose;
+  if (waypoints_.size() > 0)
+  {
+    goal_pose.x = waypoints_[0].x;
+    goal_pose.y = waypoints_[0].y;
+    goal_pose.theta = tracked_robot_.state.pose.theta;
+  }
+  else
+  {
+    goal_pose.x = -1337;
+    goal_pose.y = -1337;
+    goal_pose.theta = -1337;
+  }
+  return goal_pose;
+}

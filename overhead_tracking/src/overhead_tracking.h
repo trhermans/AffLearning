@@ -99,6 +99,7 @@ class OverheadTracker
 
   overhead_tracking::CleanupObjectArray getCleanupObjects();
   geometry_msgs::Pose2D getRobotPose();
+  geometry_msgs::Pose2D getGoalPose();
 
  protected:
   int getId();

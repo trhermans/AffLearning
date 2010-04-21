@@ -32,82 +32,22 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "ros/ros.h"
-#include "simple_motion_planner.h"
-#include "overhead_tracking/CleanupObjectArray.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Twist.h"
 
-class CleanupPlannerNode
+class SimpleMotionPlanner
 {
  public:
-  CleanupPlannerNode(ros::NodeHandle &n) :
-      n_(n), updated_goal_(false), have_goal_(false)
-  {
-    cleanup_objs_sub_ = n_.subscribe("cleanup_objs", 1,
-                                    &CleanupPlannerNode::objectCallback, this);
-    robot_pose_sub_ = n_.subscribe("robot_pose", 1,
-                                  &CleanupPlannerNode::robotPoseCallback, this);
-    goal_pose_sub_ = n_.subscribe("goal_pose", 1,
-                                  &CleanupPlannerNode::robotPoseCallback, this);
-  }
-
-  void objectCallback(const overhead_tracking::CleanupObjectArrayConstPtr &msg)
-  {
-  }
-
-  void robotPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
-  {
-    robot_pose_.x = msg->x;
-    robot_pose_.y = msg->y;
-    robot_pose_.theta = msg->theta;
-  }
-
-  void goalPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
-  {
-    if(msg->x != goal_pose_.x || msg->y != goal_pose_.y)
-    {
-      goal_pose_.x = msg->x;
-      goal_pose_.y = msg->y;
-      goal_pose_.theta = msg->theta;
-      updated_goal_ = true;
-      have_goal_ = true;
-    }
-    if (goal_pose_.x == -1337)
-      have_goal_ = false;
-  }
-
-  void spin()
-  {
-    while(n_.ok()) {
-
-      if(have_goal_)
-      {
-        geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);
-      }
-
-      ros::spinOnce();
-    }
-  }
+  SimpleMotionPlanner();
+  geometry_msgs::Twist getVelocityCommand(geometry_msgs::Pose2D robot_pose);
+  void setGoalPose(geometry_msgs::Pose2D goal_pose);
 
  protected:
-  ros::Subscriber cleanup_objs_sub_;
-  ros::Subscriber robot_pose_sub_;
-  ros::Subscriber goal_pose_sub_;
   geometry_msgs::Pose2D goal_pose_;
-  geometry_msgs::Pose2D robot_pose_;
-  ros::NodeHandle n_;
-
-  SimpleMotionPlanner mp_;
-
-  bool updated_goal_;
-  bool have_goal_;
+  geometry_msgs::Pose2D current_pose_;
+  bool moving_;
+  bool sonar_avoid_;
+  float eps_x_;
+  float eps_y_;
+  float eps_theta_;
 };
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "cleanup_planner");
-  ros::NodeHandle n;
-  CleanupPlannerNode cleanup_node(n);
-  cleanup_node.spin();
-}

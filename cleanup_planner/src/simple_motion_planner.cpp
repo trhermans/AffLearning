@@ -31,83 +31,62 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-
-#include "ros/ros.h"
 #include "simple_motion_planner.h"
-#include "overhead_tracking/CleanupObjectArray.h"
-#include "geometry_msgs/Pose2D.h"
-#include "geometry_msgs/Twist.h"
+#include <math.h>
 
-class CleanupPlannerNode
+#define TURN_ONLY_BEARING M_PI / 6.0 // 30.0 degrees
+#define MAX_FORWARD_VEL 1.4
+#define MIN_FORWARD_VEL 0.1
+#define MAX_ROTIATIONL_VEL 5.25
+#define MAX_ROTATIONAL_VEL 0.2
+
+float clip(float val, float min_val, float max_val)
 {
- public:
-  CleanupPlannerNode(ros::NodeHandle &n) :
-      n_(n), updated_goal_(false), have_goal_(false)
-  {
-    cleanup_objs_sub_ = n_.subscribe("cleanup_objs", 1,
-                                    &CleanupPlannerNode::objectCallback, this);
-    robot_pose_sub_ = n_.subscribe("robot_pose", 1,
-                                  &CleanupPlannerNode::robotPoseCallback, this);
-    goal_pose_sub_ = n_.subscribe("goal_pose", 1,
-                                  &CleanupPlannerNode::robotPoseCallback, this);
-  }
+  if (val < min_val)
+    return min_val;
+  if (val > max_val)
+    return max_val;
+  return val;
+}
 
-  void objectCallback(const overhead_tracking::CleanupObjectArrayConstPtr &msg)
-  {
-  }
+SimpleMotionPlanner::SimpleMotionPlanner() :
+    moving_(false), sonar_avoid_(false), eps_x_(0.5), eps_y_(0.5),
+    eps_theta_(M_PI/8.0)
+{
+}
 
-  void robotPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
-  {
-    robot_pose_.x = msg->x;
-    robot_pose_.y = msg->y;
-    robot_pose_.theta = msg->theta;
-  }
+geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
+    geometry_msgs::Pose2D robot_pose)
+{
+  current_pose_ = robot_pose;
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = 0.0;
+  cmd_vel.angular.z = 0.0;
 
-  void goalPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
+  double bearing_to_goal = atan2(goal_pose_.y - robot_pose.y,
+                                 goal_pose_.x - robot_pose.x);
+  double distance_to_goal = hypot(goal_pose_.y - robot_pose.y,
+                                  goal_pose_.x - robot_pose.x);
+
+  // Check if we are at the goal
+  if (abs(distance_to_goal) < eps_x_ &&
+      abs(distance_to_goal) < eps_y_)
   {
-    if(msg->x != goal_pose_.x || msg->y != goal_pose_.y)
+    if (abs(bearing_to_goal) > eps_theta_)
     {
-      goal_pose_.x = msg->x;
-      goal_pose_.y = msg->y;
-      goal_pose_.theta = msg->theta;
-      updated_goal_ = true;
-      have_goal_ = true;
+      cmd_vel.angular.z = bearing_to_goal;
     }
-    if (goal_pose_.x == -1337)
-      have_goal_ = false;
-  }
-
-  void spin()
+  } // Check if we need to turn to the goal first
+  else if( abs(bearing_to_goal) > TURN_ONLY_BEARING)
   {
-    while(n_.ok()) {
-
-      if(have_goal_)
-      {
-        geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);
-      }
-
-      ros::spinOnce();
-    }
+    cmd_vel.angular.z = MAX_ROTATIONAL_VEL;
+  }
+  else // Drive forward
+  {
+    cmd_vel.linear.x = clip(MAX_FORWARD_VEL / distance_to_goal,
+                            MIN_FORWARD_VEL, MAX_FORWARD_VEL);
+    cmd_vel.angular.z = bearing_to_goal;
   }
 
- protected:
-  ros::Subscriber cleanup_objs_sub_;
-  ros::Subscriber robot_pose_sub_;
-  ros::Subscriber goal_pose_sub_;
-  geometry_msgs::Pose2D goal_pose_;
-  geometry_msgs::Pose2D robot_pose_;
-  ros::NodeHandle n_;
-
-  SimpleMotionPlanner mp_;
-
-  bool updated_goal_;
-  bool have_goal_;
-};
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "cleanup_planner");
-  ros::NodeHandle n;
-  CleanupPlannerNode cleanup_node(n);
-  cleanup_node.spin();
+  return cmd_vel;
 }
