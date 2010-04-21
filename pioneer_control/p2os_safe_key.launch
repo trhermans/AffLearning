@@ -20,4 +20,5 @@
     <remap from="raw_cmd_vel" to="/cmd_vel"/>
     <remap from="sonar" to="/sonar"/>
   </node>
+  <include file="$(find pioneer_control)/teleop_keyboard.launch"/>
 </launch>

@@ -1,4 +1,4 @@
 <launch>
-  <include file="$(find pioneer_control)/p2os.launch"/>
+  <include file="$(find pioneer_control)/p2os_safe.launch"/>
   <include file="$(find overhead_tracking)/overhead.launch"/>
 </launch>
