@@ -98,7 +98,7 @@ class TeleopPioneerKeyboard
   double walk_vel_, run_vel_, yaw_rate_, yaw_rate_run_;
   double pan_rate_, tilt_rate_, zoom_rate_;
   double fast_pan_rate_, fast_tilt_rate_, fast_zoom_rate_;
-  geometry_msgs::Twist vel_cmd_;
+  geometry_msgs::Twist cmd_vel_;
   p2os::MotorState motor_cmd_;
   p2os::GripperState grip_cmd_;
   p2os::PTZState ptz_cmd_;
@@ -112,14 +112,14 @@ class TeleopPioneerKeyboard
  public:
   void init()
   {
-    vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.angular.z = 0;
+    cmd_vel_.linear.x = cmd_vel_.linear.y = cmd_vel_.angular.z = 0;
     ptz_cmd_.pan = ptz_cmd_.tilt = ptz_cmd_.zoom = 0;
     ptz_cmd_.relative = false;
     grip_cmd_.grip.state = grip_cmd_.lift.state = 0;
     motor_cmd_.state = MOTOR_OFF_VAL;
 
     motor_pub_ = n_.advertise<p2os::MotorState>("motor_state_cmd", 1);
-    vel_pub_ = n_.advertise<geometry_msgs::Twist>("vel_cmd", 1);
+    vel_pub_ = n_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     grip_pub_ = n_.advertise<p2os::GripperState>("gripper_cmd", 1);
     ptz_pub_ = n_.advertise<p2os::PTZState>("ptz_cmd", 1);
 
@@ -203,7 +203,7 @@ void TeleopPioneerKeyboard::keyboardLoop()
     }
 
     // Clear the previous commands
-    vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.angular.z = 0;
+    cmd_vel_.linear.x = cmd_vel_.linear.y = cmd_vel_.angular.z = 0;
     ptz_cmd_.pan = ptz_cmd_.tilt = ptz_cmd_.zoom = 0;
 
     motor_dirty = false;
@@ -221,37 +221,37 @@ void TeleopPioneerKeyboard::keyboardLoop()
 
         // Walking
       case KEYCODE_W:
-        vel_cmd_.linear.x = walk_vel_;
+        cmd_vel_.linear.x = walk_vel_;
         vel_dirty = true;
         break;
       case KEYCODE_S:
-        vel_cmd_.linear.x = - walk_vel_;
+        cmd_vel_.linear.x = - walk_vel_;
         vel_dirty = true;
         break;
       case KEYCODE_A:
-        vel_cmd_.angular.z = yaw_rate_;
+        cmd_vel_.angular.z = yaw_rate_;
         vel_dirty = true;
         break;
       case KEYCODE_D:
-        vel_cmd_.angular.z = - yaw_rate_;
+        cmd_vel_.angular.z = - yaw_rate_;
         vel_dirty = true;
         break;
 
         // Running
       case KEYCODE_W_CAP:
-        vel_cmd_.linear.x = run_vel_;
+        cmd_vel_.linear.x = run_vel_;
         vel_dirty = true;
         break;
       case KEYCODE_S_CAP:
-        vel_cmd_.linear.x = - run_vel_;
+        cmd_vel_.linear.x = - run_vel_;
         vel_dirty = true;
         break;
       case KEYCODE_A_CAP:
-        vel_cmd_.angular.z = yaw_rate_run_;
+        cmd_vel_.angular.z = yaw_rate_run_;
         vel_dirty = true;
         break;
       case KEYCODE_D_CAP:
-        vel_cmd_.angular.z = - yaw_rate_run_;
+        cmd_vel_.angular.z = - yaw_rate_run_;
         vel_dirty = true;
         break;
 
@@ -357,7 +357,7 @@ void TeleopPioneerKeyboard::keyboardLoop()
 
     if (vel_dirty)
     {
-      vel_pub_.publish(vel_cmd_);
+      vel_pub_.publish(cmd_vel_);
     }
 
     if (gripper_dirty)
