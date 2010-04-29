@@ -50,7 +50,8 @@ class SonarSafetyNode
       n_(n), safe_dist_(0.5), forward_detection_(false),
       lateral_detection_(false)
   {
-    sonar_sub_ = n_.subscribe("sonar", 1, &SonarSafetyNode::sonarCallback, this);
+    sonar_sub_ = n_.subscribe("sonar", 1, &SonarSafetyNode::sonarCallback,
+                              this);
     raw_cmd_sub_ = n_.subscribe("raw_cmd_vel", 1,
                                 &SonarSafetyNode::rawCmdCallback, this);
     safe_cmd_pub_ = n_.advertise<geometry_msgs::Twist>("safe_cmd_vel", 1000);

@@ -45,11 +45,13 @@ class CleanupPlannerNode
       n_(n), updated_goal_(false), have_goal_(false)
   {
     cleanup_objs_sub_ = n_.subscribe("cleanup_objs", 1,
-                                    &CleanupPlannerNode::objectCallback, this);
+                                     &CleanupPlannerNode::objectCallback, this);
     robot_pose_sub_ = n_.subscribe("robot_pose", 1,
-                                  &CleanupPlannerNode::robotPoseCallback, this);
+                                   &CleanupPlannerNode::robotPoseCallback,
+                                   this);
     goal_pose_sub_ = n_.subscribe("goal_pose", 1,
                                   &CleanupPlannerNode::robotPoseCallback, this);
+    cmd_vel_pub_ = n_.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
   }
 
   void objectCallback(const overhead_tracking::CleanupObjectArrayConstPtr &msg)
@@ -84,6 +86,7 @@ class CleanupPlannerNode
       if(have_goal_)
       {
         geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);
+        cmd_vel_pub_.publish(cmd_vel);
       }
 
       ros::spinOnce();
@@ -94,6 +97,7 @@ class CleanupPlannerNode
   ros::Subscriber cleanup_objs_sub_;
   ros::Subscriber robot_pose_sub_;
   ros::Subscriber goal_pose_sub_;
+  ros::Publisher cmd_vel_pub_;
   geometry_msgs::Pose2D goal_pose_;
   geometry_msgs::Pose2D robot_pose_;
   ros::NodeHandle n_;
