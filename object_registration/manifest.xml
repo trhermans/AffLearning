@@ -1,0 +1,14 @@
+<package>
+  <description brief="object_registration">
+
+     object_registration
+
+  </description>
+  <author>Tucker Hermans</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/object_registration</url>
+  <depend package="opencv2"/>
+</package>
+
+
