@@ -535,12 +535,16 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
     // pi radians
     if ((sign(tracked_robot_.state.pose.theta) != sign(theta_prime))
         &&
-        (fabs(tracked_robot_.state.pose.theta) > 1.0 || fabs(theta_prime) > 1.0)
-        )
+        ((fabs(tracked_robot_.state.pose.theta) > 1.0 &&
+          fabs(tracked_robot_.state.pose.theta) < (M_PI - 0.5))
+          ||
+          (fabs(theta_prime) > 1.0 && fabs(theta_prime) < (M_PI - 0.5))
+         ))
     {
       swap_orientation_ = !swap_orientation_;
-      ROS_INFO("Swapping orientation direction to %d", swap_orientation_);
-
+      ROS_DEBUG("Swapping orientation direction to %d", swap_orientation_);
+      ROS_DEBUG("Tracked robot theta is %f", tracked_robot_.state.pose.theta);
+      ROS_DEBUG("Theta prime is %f", theta_prime);
       // We either need to swap or need to undo the swap
       if(theta_prime > 0.0)
         theta_prime = theta_prime - M_PI;
