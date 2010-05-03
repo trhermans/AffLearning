@@ -1,5 +1,5 @@
 <launch>
-  <include file="$(find pioneer_control)/p2os_safe.launch"/>
+  <include file="$(find pioneer_control)/p2os_key.launch"/>
   <include file="$(find overhead_tracking)/overhead.launch"/>
   <node name="cleanup_planner" type="cleanup_planner_node" pkg="cleanup_planner">
     <remap from="cmd_vel" to="/cmd_vel"/>
