@@ -139,13 +139,11 @@ int main(int argc, char** argv)
 
   vector<KeyPoint> prev_keypoints;
   vector<KeyPoint> cur_keypoints;
-  vector<Point2f> cur_points;
   vector<Descriptor> prev_descriptors;
   vector<Descriptor> cur_descriptors;
 
   prev_keypoints.clear();
   cur_keypoints.clear();
-  cur_points.clear();
   prev_descriptors.clear();
   cur_descriptors.clear();
 
@@ -156,23 +154,18 @@ int main(int argc, char** argv)
     filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
     Mat frame;
     frame = imread(filepath.str());
+    cout << "Image has size: (" << frame.cols << ", " << frame.rows << ")" << endl;
     Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
 
     cvtColor(frame, bw_frame, CV_RGB2GRAY);
     cur_keypoints.clear();
-    cur_points.clear();
     cur_descriptors.clear();
 
     vector<float> raw_descriptors;
 
     try
     {
-      // goodFeaturesToTrack(bw_frame, cur_points, 750, 0.001, 0.1);
-      // for (unsigned int j = 0; j < cur_points.size(); ++j)
-      // {
-      //   cur_keypoints.push_back(KeyPoint(cur_points[j], 16.0));
-      // }
-      surf(bw_frame, Mat(), cur_keypoints, raw_descriptors, false);
+      surf(bw_frame, Mat(), cur_keypoints, raw_descriptors);
       for (unsigned int j = 0; j < raw_descriptors.size(); j += 128)
       {
         Descriptor d(raw_descriptors.begin() + j,
@@ -190,7 +183,7 @@ int main(int argc, char** argv)
     matches_prev.clear();
 
     cout << "Displaying image " << i << endl;
-    for (unsigned int j = 0; DRAW_KEYPOINTS && j < cur_keypoints.size(); ++j)
+    for (int j = 0; DRAW_KEYPOINTS && j < cur_keypoints.size(); ++j)
     {
       circle(frame, cur_keypoints[j].pt,
              max(pow(2.0, cur_keypoints[j].octave),2.0),
@@ -213,7 +206,7 @@ int main(int argc, char** argv)
     }
     imshow("obj_reg", frame);
     cout << endl;
-    char c = waitKey(10);
+    char c = waitKey();
     prev_keypoints = cur_keypoints;
     prev_descriptors = cur_descriptors;
   }
