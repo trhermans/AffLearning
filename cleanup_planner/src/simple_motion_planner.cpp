@@ -35,12 +35,22 @@
 #include <math.h>
 
 #define TURN_ONLY_BEARING M_PI / 6.0 // 30.0 degrees
-#define MAX_FORWARD_VEL 1.4
-#define MIN_FORWARD_VEL 0.1
-#define MAX_ROTIATIONL_VEL 5.25
-#define MAX_ROTATIONAL_VEL 0.2
+#define MAX_FORWARD_VEL 0.02
+#define MIN_FORWARD_VEL 0.01
+#define MAX_ROTATIONAL_VEL 0.5
+#define MIN_ROTATIONAL_VEL 0.2
 
-float clip(float val, float min_val, float max_val)
+inline int sign(double x)
+{
+  if (x < 0)
+    return -1;
+  else if (x > 0)
+    return 1;
+  else
+    return 0;
+}
+
+inline float clip(float val, float min_val, float max_val)
 {
   if (val < min_val)
     return min_val;
@@ -50,8 +60,8 @@ float clip(float val, float min_val, float max_val)
 }
 
 SimpleMotionPlanner::SimpleMotionPlanner() :
-    moving_(false), sonar_avoid_(false), eps_x_(0.5), eps_y_(0.5),
-    eps_theta_(M_PI/8.0)
+    moving_(false), sonar_avoid_(false), eps_x_(0.3), eps_y_(0.3),
+    eps_theta_(M_PI/8.0), counter_(0)
 {
 }
 
@@ -67,25 +77,32 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
                                  goal_pose_.x - robot_pose.x);
   double distance_to_goal = hypot(goal_pose_.y - robot_pose.y,
                                   goal_pose_.x - robot_pose.x);
+  counter_++;
+  if (counter_ % 10 == 0)
+    ROS_INFO("Vector to goal is (%f, %f)", distance_to_goal, bearing_to_goal);
 
   // Check if we are at the goal
   if (abs(distance_to_goal) < eps_x_ &&
       abs(distance_to_goal) < eps_y_)
   {
-    if (abs(bearing_to_goal) > eps_theta_)
-    {
-      cmd_vel.angular.z = bearing_to_goal;
-    }
+    // if (abs(bearing_to_goal) > eps_theta_)
+    // {
+    //   //cmd_vel.angular.z = bearing_to_goal;
+    //   cmd_vel.angular.z = sign(bearing_to_goal)*MIN_ROTATIONAL_VEL;
+    // }
   } // Check if we need to turn to the goal first
   else if( abs(bearing_to_goal) > TURN_ONLY_BEARING)
   {
-    cmd_vel.angular.z = MAX_ROTATIONAL_VEL;
+    cmd_vel.angular.z = sign(bearing_to_goal)*MIN_ROTATIONAL_VEL;
   }
   else // Drive forward
   {
     cmd_vel.linear.x = clip(MAX_FORWARD_VEL / distance_to_goal,
-                            MIN_FORWARD_VEL, MAX_FORWARD_VEL);
-    cmd_vel.angular.z = bearing_to_goal;
+                            MIN_FORWARD_VEL,
+                            MAX_FORWARD_VEL);
+    cmd_vel.angular.z = clip(bearing_to_goal,
+                             MIN_ROTATIONAL_VEL,
+                             MAX_ROTATIONAL_VEL);
   }
 
   return cmd_vel;

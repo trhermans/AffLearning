@@ -50,7 +50,7 @@ class CleanupPlannerNode
                                    &CleanupPlannerNode::robotPoseCallback,
                                    this);
     goal_pose_sub_ = n_.subscribe("goal_pose", 1,
-                                  &CleanupPlannerNode::robotPoseCallback, this);
+                                  &CleanupPlannerNode::goalPoseCallback, this);
     cmd_vel_pub_ = n_.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
   }
 
@@ -74,6 +74,7 @@ class CleanupPlannerNode
       goal_pose_.theta = msg->theta;
       updated_goal_ = true;
       have_goal_ = true;
+      ROS_INFO("Updated robot goal pose");
     }
     if (goal_pose_.x == -1337)
       have_goal_ = false;
@@ -81,8 +82,8 @@ class CleanupPlannerNode
 
   void spin()
   {
-    while(n_.ok()) {
-
+    while(n_.ok())
+    {
       if(have_goal_)
       {
         geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);

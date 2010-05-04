@@ -93,7 +93,8 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     min_contour_size_(0), run_count_(0), next_id_(0),
     // Robot Orientation Stuff
     initializing_orientation_(false), orientation_offset_(0.0),
-    finished_orientation_init_(false), swap_orientation_(false)
+    finished_orientation_init_(false), swap_orientation_(false),
+    changed_waypoints_(false)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -307,7 +308,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
                  boundary_color_, 2);
   }
 
-  // Draw user defined boundaries
+  // Draw user defined waypoints
   if (waypoints_.size() > 0)
   {
     ROS_DEBUG("Drawing waypoints boundaries");
@@ -616,6 +617,7 @@ void OverheadTracker::addBoundaryPoint(Point pt)
 void OverheadTracker::setRobotWaypoint(Point pt)
 {
   waypoints_.push_back(pt);
+  changed_waypoints_ = true;
   // Convert to global coordinates
 
   // Publish over ros
@@ -863,4 +865,14 @@ Pose2D OverheadTracker::getGoalPose()
     goal_pose.theta = -1337;
   }
   return goal_pose;
+}
+
+bool OverheadTracker::newGoalPose()
+{
+  if(changed_waypoints_)
+  {
+    changed_waypoints_ = false;
+    return true;
+  }
+  return false;
 }

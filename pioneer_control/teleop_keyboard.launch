@@ -6,8 +6,8 @@
       <remap from="gripper_cmd" to="/gripper_cmd"/>
       <remap from="ptz_cmd" to="/ptz_cmd"/>
 
-      <param name="walk_vel" value="0.25" />
-      <param name="run_vel" value="1.0" />
+      <param name="walk_vel" value="0.05" />
+      <param name="run_vel" value="0.5" />
       <param name="yaw_rate" value="0.25" />
       <param name="yaw_run_rate" value="1.5" />
       <param name="pan_rate" value="5" />

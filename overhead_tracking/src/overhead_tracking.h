@@ -100,6 +100,7 @@ class OverheadTracker
   overhead_tracking::CleanupObjectArray getCleanupObjects();
   geometry_msgs::Pose2D getRobotPose();
   geometry_msgs::Pose2D getGoalPose();
+  bool newGoalPose();
 
  protected:
   int getId();
@@ -143,6 +144,7 @@ class OverheadTracker
   cv::Point init_orientation_center_;
   bool finished_orientation_init_;
   bool swap_orientation_;
+  bool changed_waypoints_;
 
   // Constants
  public:

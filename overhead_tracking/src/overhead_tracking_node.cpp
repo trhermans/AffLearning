@@ -92,7 +92,10 @@ class OverheadTrackingNode
   {
     pose_pub_.publish(tracker_.getRobotPose());
     object_pub_.publish(tracker_.getCleanupObjects());
-    goal_pub_.publish(tracker_.getGoalPose());
+    if (tracker_.newGoalPose())
+    {
+      goal_pub_.publish(tracker_.getGoalPose());
+    }
   }
 
   void spin()

@@ -47,7 +47,7 @@ class SonarSafetyNode
 {
  public:
   SonarSafetyNode(ros::NodeHandle n) :
-      n_(n), safe_dist_(0.5), forward_detection_(false),
+      n_(n), safe_dist_(0.3), forward_detection_(false),
       lateral_detection_(false)
   {
     sonar_sub_ = n_.subscribe("sonar", 1, &SonarSafetyNode::sonarCallback,
@@ -101,8 +101,9 @@ class SonarSafetyNode
       }
     }
 
-    lateral_detection_ = (sonar_data->ranges[0] < safe_dist_ ||
-                          sonar_data->ranges[7] < safe_dist_ );
+    lateral_detection_ = (false &&
+                          (sonar_data->ranges[0] < safe_dist_ ||
+                           sonar_data->ranges[7] < safe_dist_ ));
 
     // Change our safe velocity command if the detection state changes
     if (prev_forward_detection != forward_detection_ ||
