@@ -50,5 +50,4 @@ class SimpleMotionPlanner
   float eps_x_;
   float eps_y_;
   float eps_theta_;
-  unsigned int counter_;
 };

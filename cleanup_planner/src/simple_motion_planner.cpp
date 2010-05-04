@@ -32,11 +32,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 #include "simple_motion_planner.h"
-#include <math.h>
+#include <cmath>
 
 #define TURN_ONLY_BEARING M_PI / 6.0 // 30.0 degrees
-#define MAX_FORWARD_VEL 0.02
-#define MIN_FORWARD_VEL 0.01
+#define MAX_FORWARD_VEL 0.08
+#define MIN_FORWARD_VEL 0.05
 #define MAX_ROTATIONAL_VEL 0.5
 #define MIN_ROTATIONAL_VEL 0.2
 
@@ -59,10 +59,29 @@ inline float clip(float val, float min_val, float max_val)
   return val;
 }
 
+double subPIAngle(double theta)
+{
+    theta = std::fmod(theta, 2.0*M_PI);
+    if( theta > M_PI) {
+        theta -= 2.0*M_PI;
+    }
+
+    if( theta < -M_PI) {
+        theta += 2.0*M_PI;
+    }
+    return theta;
+}
+
 SimpleMotionPlanner::SimpleMotionPlanner() :
     moving_(false), sonar_avoid_(false), eps_x_(0.3), eps_y_(0.3),
-    eps_theta_(M_PI/8.0), counter_(0)
+    eps_theta_(M_PI/8.0)
 {
+}
+void SimpleMotionPlanner::setGoalPose(geometry_msgs::Pose2D goal_pose)
+{
+  goal_pose_.x = goal_pose.x;
+  goal_pose_.y = goal_pose.y;
+  goal_pose_.theta = goal_pose.theta;
 }
 
 geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
@@ -73,36 +92,33 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
   cmd_vel.linear.x = 0.0;
   cmd_vel.angular.z = 0.0;
 
-  double bearing_to_goal = atan2(goal_pose_.y - robot_pose.y,
-                                 goal_pose_.x - robot_pose.x);
+  double bearing_to_goal = subPIAngle(atan2(robot_pose.y - goal_pose_.y,
+                                            goal_pose_.x - robot_pose.x) -
+                                      robot_pose.theta);
   double distance_to_goal = hypot(goal_pose_.y - robot_pose.y,
                                   goal_pose_.x - robot_pose.x);
-  counter_++;
-  if (counter_ % 10 == 0)
-    ROS_INFO("Vector to goal is (%f, %f)", distance_to_goal, bearing_to_goal);
-
+  int bearing_dir = sign(bearing_to_goal);
+  double bearing_mag = abs(bearing_to_goal);
   // Check if we are at the goal
   if (abs(distance_to_goal) < eps_x_ &&
       abs(distance_to_goal) < eps_y_)
   {
-    // if (abs(bearing_to_goal) > eps_theta_)
+    // if ( bearing_mag > eps_theta_)
     // {
     //   //cmd_vel.angular.z = bearing_to_goal;
     //   cmd_vel.angular.z = sign(bearing_to_goal)*MIN_ROTATIONAL_VEL;
     // }
   } // Check if we need to turn to the goal first
-  else if( abs(bearing_to_goal) > TURN_ONLY_BEARING)
+  else if( bearing_mag > TURN_ONLY_BEARING)
   {
-    cmd_vel.angular.z = sign(bearing_to_goal)*MIN_ROTATIONAL_VEL;
+    cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
   }
-  else // Drive forward
+  else if(false) // Drive forward
   {
     cmd_vel.linear.x = clip(MAX_FORWARD_VEL / distance_to_goal,
                             MIN_FORWARD_VEL,
                             MAX_FORWARD_VEL);
-    cmd_vel.angular.z = clip(bearing_to_goal,
-                             MIN_ROTATIONAL_VEL,
-                             MAX_ROTATIONAL_VEL);
+    cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
   }
 
   return cmd_vel;

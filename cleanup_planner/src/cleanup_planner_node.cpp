@@ -74,6 +74,7 @@ class CleanupPlannerNode
       goal_pose_.theta = msg->theta;
       updated_goal_ = true;
       have_goal_ = true;
+      mp_.setGoalPose(goal_pose_);
       ROS_INFO("Updated robot goal pose");
     }
     if (goal_pose_.x == -1337)

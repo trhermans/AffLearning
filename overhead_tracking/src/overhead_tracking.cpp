@@ -616,11 +616,11 @@ void OverheadTracker::addBoundaryPoint(Point pt)
  */
 void OverheadTracker::setRobotWaypoint(Point pt)
 {
-  waypoints_.push_back(pt);
   changed_waypoints_ = true;
   // Convert to global coordinates
-
-  // Publish over ros
+  // pt.x = imgXtoWorldX(pt.x);
+  // pt.y = imgYtoWorldY(pt.y);
+  waypoints_.push_back(pt);
 }
 
 /**
@@ -842,8 +842,10 @@ CleanupObjectArray OverheadTracker::getCleanupObjects()
 Pose2D OverheadTracker::getRobotPose()
 {
   Pose2D world_pose;
-  world_pose.x = imgXtoWorldX(tracked_robot_.state.pose.x);
-  world_pose.y = imgYtoWorldY(tracked_robot_.state.pose.y);
+  // world_pose.x = imgXtoWorldX(tracked_robot_.state.pose.x);
+  // world_pose.y = imgYtoWorldY(tracked_robot_.state.pose.y);
+  world_pose.x = tracked_robot_.state.pose.x;
+  world_pose.y = tracked_robot_.state.pose.y;
   world_pose.theta = tracked_robot_.state.pose.theta;
 
   return world_pose;
