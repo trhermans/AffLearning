@@ -668,6 +668,7 @@ void OverheadTracker::onKeyCallback(char c)
       break;
     case CLEAR_WAYPOINT_KEY:
       waypoints_.clear();
+      changed_waypoints_ = true;
       break;
     case DRAW_BOUNDARY_KEY:
       if (drawing_boundary_)

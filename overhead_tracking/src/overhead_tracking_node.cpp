@@ -86,6 +86,7 @@ class OverheadTrackingNode
 
     // Update our contour image
     tracker_.updateDisplay(current_img_, contours_);
+    publishData();
   }
 
   void publishData()
@@ -101,7 +102,7 @@ class OverheadTrackingNode
   void spin()
   {
     while(n_.ok()) {
-      publishData();
+      //publishData();
       ros::spinOnce();
     }
   }

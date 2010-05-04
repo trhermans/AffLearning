@@ -59,17 +59,29 @@ inline float clip(float val, float min_val, float max_val)
   return val;
 }
 
-double subPIAngle(double theta)
+double subPIangle(double theta)
 {
-    theta = std::fmod(theta, 2.0*M_PI);
-    if( theta > M_PI) {
-        theta -= 2.0*M_PI;
-    }
+  theta = std::fmod(theta, 2.0*M_PI);
+  if( theta > M_PI) {
+    theta -= 2.0*M_PI;
+  }
 
-    if( theta < -M_PI) {
-        theta += 2.0*M_PI;
-    }
-    return theta;
+  if( theta < -M_PI) {
+    theta += 2.0*M_PI;
+  }
+  return theta;
+}
+
+double subPIdiff(double theta, double from_theta)
+{
+  while(abs(theta - from_theta) > M_PI)
+  {
+    if (theta > 0)
+      theta -= 2.0*M_PI;
+    else
+      theta += 2.0*M_PI;
+  }
+  return (theta - from_theta);
 }
 
 SimpleMotionPlanner::SimpleMotionPlanner() :
@@ -92,13 +104,15 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
   cmd_vel.linear.x = 0.0;
   cmd_vel.angular.z = 0.0;
 
-  double bearing_to_goal = subPIAngle(atan2(robot_pose.y - goal_pose_.y,
-                                            goal_pose_.x - robot_pose.x) -
-                                      robot_pose.theta);
+  double bearing_to_goal = subPIdiff(atan2(robot_pose.y - goal_pose_.y,
+                                           goal_pose_.x - robot_pose.x),
+                                     robot_pose.theta);
   double distance_to_goal = hypot(goal_pose_.y - robot_pose.y,
                                   goal_pose_.x - robot_pose.x);
+  //ROS_INFO("Bearing raw is: %f", bearing_to_goal);
   int bearing_dir = sign(bearing_to_goal);
-  double bearing_mag = abs(bearing_to_goal);
+  double bearing_mag = fabs(bearing_to_goal);
+  ROS_INFO("Bearing decomposed is: (%d, %f)\n", bearing_dir, bearing_mag);
   // Check if we are at the goal
   if (abs(distance_to_goal) < eps_x_ &&
       abs(distance_to_goal) < eps_y_)
@@ -118,8 +132,16 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
     cmd_vel.linear.x = clip(MAX_FORWARD_VEL / distance_to_goal,
                             MIN_FORWARD_VEL,
                             MAX_FORWARD_VEL);
-    cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
+    //cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
   }
 
+  return cmd_vel;
+}
+
+geometry_msgs::Twist SimpleMotionPlanner::stopMoving()
+{
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = 0;
+  cmd_vel.angular.z = 0;
   return cmd_vel;
 }

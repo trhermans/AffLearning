@@ -78,7 +78,10 @@ class CleanupPlannerNode
       ROS_INFO("Updated robot goal pose");
     }
     if (goal_pose_.x == -1337)
+    {
       have_goal_ = false;
+      updated_goal_ = true;
+    }
   }
 
   void spin()
@@ -88,6 +91,11 @@ class CleanupPlannerNode
       if(have_goal_)
       {
         geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);
+        cmd_vel_pub_.publish(cmd_vel);
+      }
+      else if (updated_goal_)
+      {
+        geometry_msgs::Twist cmd_vel =  mp_.stopMoving();
         cmd_vel_pub_.publish(cmd_vel);
       }
 
