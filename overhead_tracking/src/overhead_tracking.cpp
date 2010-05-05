@@ -140,7 +140,9 @@ void OverheadTracker::initRobotTrack(vector<Point>& robot_contour,
 {
   tracked_robot_.state.pose.x = robot_moments.m10 / robot_moments.m00;
   tracked_robot_.state.pose.y = robot_moments.m01 / robot_moments.m00;
-
+  tracked_robot_.state.pose.theta = (-0.5*atan2(2*robot_moments.mu11,
+                                                robot_moments.mu20 -
+                                                robot_moments.mu02));
   tracked_robot_.state.change.x = 0;
   tracked_robot_.state.change.y = 0;
   tracked_robot_.contour = robot_contour;
@@ -503,9 +505,8 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
   }
 
   // Get robot orientation
-  double theta_prime = (0.5*atan2(2*robot_moments.mu11, robot_moments.mu20 -
-                                  robot_moments.mu02) +
-                        orientation_offset_);
+  double theta_prime = (-0.5*atan2(2*robot_moments.mu11, robot_moments.mu20 -
+                                  robot_moments.mu02) + orientation_offset_);
 
   // Swap the orientation by pi radians
   if(swap_orientation_ && !initializing_orientation_ )
@@ -579,10 +580,10 @@ void OverheadTracker::drawRobot(Mat& draw_on)
                      tracked_robot_.state.pose.y -
                      tracked_robot_.state.change.y);
   // Calculate robot axes points
-  Point x_a(center.x + cos(tracked_robot_.state.pose.theta)*100,
-            center.y + sin(tracked_robot_.state.pose.theta)*100);
-  Point y_a(center.x + cos(tracked_robot_.state.pose.theta - M_PI/2.0)*100,
-            center.y + sin(tracked_robot_.state.pose.theta - M_PI/2.0)*100);
+  Point x_a(center.x + cos(-tracked_robot_.state.pose.theta)*100,
+            center.y + sin(-tracked_robot_.state.pose.theta)*100);
+  Point y_a(center.x + cos(-tracked_robot_.state.pose.theta - M_PI/2.0)*100,
+            center.y + sin(-tracked_robot_.state.pose.theta - M_PI/2.0)*100);
 
   // Draw boundary
   drawContours(draw_on, robot_contours, -1, robot_contour_color_, 2);
