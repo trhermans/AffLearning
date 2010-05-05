@@ -167,7 +167,7 @@ void OverheadTracker::initializeOrientation()
     double y_diff = tracked_robot_.state.pose.y - init_orientation_center_.y;
 
     // Calculate offset
-    double theta_hat = atan2(y_diff, x_diff);
+    double theta_hat = -atan2(y_diff, x_diff);
     orientation_offset_ = theta_hat - tracked_robot_.state.pose.theta;
 
     ROS_INFO("Set orientation offset to: %g", orientation_offset_);
