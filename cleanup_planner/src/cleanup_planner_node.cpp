@@ -95,13 +95,16 @@ class CleanupPlannerNode
         if (mp_.atGoalPose())
         {
           // Do something here, not sure what yet.
-          ROS_INFO("At goal pose!");
+          ROS_INFO("At goal pose, fool!");
+          have_goal_ = false;
         }
+        updated_goal_ = false;
       }
       else if (updated_goal_)
       {
         geometry_msgs::Twist cmd_vel =  mp_.stopMoving();
         cmd_vel_pub_.publish(cmd_vel);
+        updated_goal_ = false;
       }
 
       ros::spinOnce();

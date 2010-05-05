@@ -36,7 +36,7 @@
 
 #define TURN_ONLY_BEARING M_PI / 6.0 // 30.0 degrees
 #define DRIVE_ONLY_BEARING M_PI / 18.0 // 10.0 degrees
-#define MAX_FORWARD_VEL 0.08
+#define MAX_FORWARD_VEL 0.3
 #define MIN_FORWARD_VEL 0.05
 #define MAX_ROTATIONAL_VEL 0.5
 #define MIN_ROTATIONAL_VEL 0.2
@@ -87,7 +87,7 @@ double subPIdiff(double theta, double from_theta)
 
 SimpleMotionPlanner::SimpleMotionPlanner() :
     moving_(false), sonar_avoid_(false), eps_x_(40.0), eps_y_(40.0),
-    eps_theta_(M_PI/8.0)
+    eps_theta_(M_PI/8.0), at_goal_(false)
 {
 }
 void SimpleMotionPlanner::setGoalPose(geometry_msgs::Pose2D goal_pose)
@@ -113,6 +113,7 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
 
   int bearing_dir = sign(bearing_to_goal);
   double bearing_mag = std::abs(bearing_to_goal);
+  at_goal_ = false;
 
   // Check if we are at the goal
   if (abs(distance_to_goal) < eps_x_ &&
@@ -120,6 +121,7 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
   {
     // Add something here for having a specific goal_theta
     at_goal_ = true;
+    return cmd_vel;
   } // Check if we need to turn to the goal first
   else if( bearing_mag > TURN_ONLY_BEARING)
   {

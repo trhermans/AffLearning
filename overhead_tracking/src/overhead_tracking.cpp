@@ -823,10 +823,14 @@ CleanupObjectArray OverheadTracker::getCleanupObjects()
   for(unsigned int i = 0; i < tracked_objects_.size(); ++i)
   {
     CleanupObject obj;
-    obj.pose.x = imgXtoWorldX(tracked_objects_[i].state.pose.x);
-    obj.pose.y = imgYtoWorldY(tracked_objects_[i].state.pose.y);
-    obj.change.x = imgXtoWorldX(tracked_objects_[i].state.change.x);
-    obj.change.y = imgYtoWorldY(tracked_objects_[i].state.change.y);
+    // obj.pose.x = imgXtoWorldX(tracked_objects_[i].state.pose.x);
+    // obj.pose.y = imgYtoWorldY(tracked_objects_[i].state.pose.y);
+    // obj.change.x = imgXtoWorldX(tracked_objects_[i].state.change.x);
+    // obj.change.y = imgYtoWorldY(tracked_objects_[i].state.change.y);
+    obj.pose.x = tracked_objects_[i].state.pose.x;
+    obj.pose.y = tracked_objects_[i].state.pose.y;
+    obj.change.x = tracked_objects_[i].state.change.x;
+    obj.change.y = tracked_objects_[i].state.change.y;
 
     cleanup_objs.objects.push_back(obj);
   }
