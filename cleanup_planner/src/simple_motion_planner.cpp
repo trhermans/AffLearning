@@ -35,6 +35,7 @@
 #include <cmath>
 
 #define TURN_ONLY_BEARING M_PI / 6.0 // 30.0 degrees
+#define DRIVE_ONLY_BEARING M_PI / 18.0 // 10.0 degrees
 #define MAX_FORWARD_VEL 0.08
 #define MIN_FORWARD_VEL 0.05
 #define MAX_ROTATIONAL_VEL 0.5
@@ -85,7 +86,7 @@ double subPIdiff(double theta, double from_theta)
 }
 
 SimpleMotionPlanner::SimpleMotionPlanner() :
-    moving_(false), sonar_avoid_(false), eps_x_(0.3), eps_y_(0.3),
+    moving_(false), sonar_avoid_(false), eps_x_(40.0), eps_y_(40.0),
     eps_theta_(M_PI/8.0)
 {
 }
@@ -104,35 +105,35 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
   cmd_vel.linear.x = 0.0;
   cmd_vel.angular.z = 0.0;
 
-  double bearing_to_goal = (atan2(robot_pose.y - goal_pose_.y,
-                                  goal_pose_.x - robot_pose.x)
-                            - robot_pose.theta);
+  double bearing_to_goal = subPIangle(atan2(robot_pose.y - goal_pose_.y,
+                                            goal_pose_.x - robot_pose.x)
+                                      - robot_pose.theta);
   double distance_to_goal = hypot(goal_pose_.y - robot_pose.y,
                                   goal_pose_.x - robot_pose.x);
 
   int bearing_dir = sign(bearing_to_goal);
-  double bearing_mag = abs(bearing_to_goal);
+  double bearing_mag = std::abs(bearing_to_goal);
 
   // Check if we are at the goal
   if (abs(distance_to_goal) < eps_x_ &&
       abs(distance_to_goal) < eps_y_)
   {
-    // if ( bearing_mag > eps_theta_)
-    // {
-    //   //cmd_vel.angular.z = bearing_to_goal;
-    //   cmd_vel.angular.z = sign(bearing_to_goal)*MIN_ROTATIONAL_VEL;
-    // }
+    // Add something here for having a specific goal_theta
+    at_goal_ = true;
   } // Check if we need to turn to the goal first
   else if( bearing_mag > TURN_ONLY_BEARING)
   {
-    cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
+    cmd_vel.angular.z = bearing_dir*clip(bearing_mag,
+                                         MIN_ROTATIONAL_VEL,
+                                         MAX_ROTATIONAL_VEL);
   }
   else
   {
     cmd_vel.linear.x = clip(MAX_FORWARD_VEL / distance_to_goal,
                             MIN_FORWARD_VEL,
                             MAX_FORWARD_VEL);
-    //cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
+    if ( bearing_mag > DRIVE_ONLY_BEARING)
+      cmd_vel.angular.z = bearing_dir*MIN_ROTATIONAL_VEL;
   }
 
   return cmd_vel;

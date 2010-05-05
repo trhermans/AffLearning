@@ -92,6 +92,11 @@ class CleanupPlannerNode
       {
         geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);
         cmd_vel_pub_.publish(cmd_vel);
+        if (mp_.atGoalPose())
+        {
+          // Do something here, not sure what yet.
+          ROS_INFO("At goal pose!");
+        }
       }
       else if (updated_goal_)
       {

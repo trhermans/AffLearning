@@ -42,6 +42,7 @@ class SimpleMotionPlanner
   geometry_msgs::Twist getVelocityCommand(geometry_msgs::Pose2D robot_pose);
   geometry_msgs::Twist stopMoving();
   void setGoalPose(geometry_msgs::Pose2D goal_pose);
+  bool atGoalPose() { return at_goal_; }
 
  protected:
   geometry_msgs::Pose2D goal_pose_;
@@ -51,4 +52,5 @@ class SimpleMotionPlanner
   float eps_x_;
   float eps_y_;
   float eps_theta_;
+  bool at_goal_;
 };
