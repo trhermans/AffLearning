@@ -39,9 +39,10 @@ class SimpleMotionPlanner
 {
  public:
   SimpleMotionPlanner();
-  geometry_msgs::Twist getVelocityCommand(geometry_msgs::Pose2D robot_pose);
+  geometry_msgs::Twist getVelocityCommand(geometry_msgs::Pose2D robot_pose,
+                                          geometry_msgs::Pose2D goal_pose,
+                                          bool set_heading=false);
   geometry_msgs::Twist stopMoving();
-  void setGoalPose(geometry_msgs::Pose2D goal_pose);
   bool atGoalPose() { return at_goal_; }
 
  protected:
@@ -53,4 +54,12 @@ class SimpleMotionPlanner
   float eps_y_;
   float eps_theta_;
   bool at_goal_;
+  static const double TURN_ONLY_BEARING;
+  static const double DRIVE_ONLY_BEARING;
+  static const double MAX_FORWARD_VEL;
+  static const double MIN_FORWARD_VEL;
+  static const double FORWARD_GAIN;
+  static const double MAX_ROTATIONAL_VEL;
+  static const double MIN_ROTATIONAL_VEL;
+  static const double ROTATIONAL_GAIN;
 };

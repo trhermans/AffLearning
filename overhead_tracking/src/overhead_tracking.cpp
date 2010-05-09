@@ -36,8 +36,9 @@
 #include <opencv/highgui.h>
 #include <map>
 #include <sstream>
+#include "geometry_msgs/Point.h"
+#include "overhead_tracking/CleanupZone.h"
 
-//#define SAVE_IMAGES
 #define SHOW_OBJ_IDS
 using namespace cv;
 using std::vector;
@@ -47,6 +48,8 @@ using std::pair;
 using std::stringstream;
 using overhead_tracking::CleanupObjectArray;
 using overhead_tracking::CleanupObject;
+using overhead_tracking::CleanupZone;
+using overhead_tracking::CleanupZoneArray;
 using geometry_msgs::Pose2D;
 
 // Constants
@@ -291,15 +294,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     {
       drawRobot(update_img);
     }
-#ifdef SAVE_IMAGES
-    if(fabs(orientation_offset_) > 0.0)
-    {
-      std::stringstream filename;
-      filename << "/home/thermans/logs/tracking/track-" << (int) run_count_
-               << ".png";
-      imwrite(filename.str(), update_img);
-    }
-#endif
   }
 
   // Draw user defined boundaries
@@ -313,7 +307,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   // Draw user defined waypoints
   if (waypoints_.size() > 0)
   {
-    ROS_DEBUG("Drawing waypoints boundaries");
+    ROS_DEBUG("Drawing waypoints");
     circle(update_img, waypoints_[0], 2, waypoint_color_, 4);
     circle(update_img, waypoints_[0], 16, waypoint_color_, 2);
   }
@@ -342,7 +336,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   // Minimum distances are indexed by current object index
   vector<double> min_dists;
   vector<int> min_idx_vect;
-  double max_min_dist = 0;
+
   // Match new regions to previous ones
   ROS_DEBUG("Finding nearest objects");
   for (unsigned int i = 0; i < object_moments.size() &&
@@ -367,7 +361,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     // We have found the mimimum score, update our instances...
     ROS_DEBUG("Min spacial distnace is %le at point %u",
               min_space_dist, min_space_idx);
-    if (min_space_dist > MIN_DIST_THRESH)
+    if (min_space_dist > MIN_DIST_THRESH || min_space_idx == -1)
     {
       min_idx_vect.push_back(-1);
       min_dists.push_back(0.0);
@@ -378,10 +372,6 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
       min_idx_map.insert(pair<int,int>(min_space_idx, i));
       min_idx_vect.push_back(min_space_idx);
       min_dists.push_back(min_space_dist);
-    }
-    if (min_space_dist > max_min_dist)
-    {
-      max_min_dist = min_space_dist;
     }
 
   }
@@ -853,6 +843,24 @@ Pose2D OverheadTracker::getRobotPose()
   world_pose.theta = tracked_robot_.state.pose.theta;
 
   return world_pose;
+}
+
+CleanupZoneArray OverheadTracker::getCleanupZones()
+{
+  CleanupZoneArray zones;
+  for (unsigned int i = 0; i < boundary_contours_.size(); ++i)
+  {
+    CleanupZone zone;
+    for (unsigned int j = 0; j < boundary_contours_[i].size(); ++j)
+    {
+      geometry_msgs::Point zone_point;
+      zone_point.x = boundary_contours_[i][j].x;
+      zone_point.y = boundary_contours_[i][j].y;
+      zone.boundary.push_back(zone_point);
+    }
+    zones.zones.push_back(zone);
+  }
+  return zones;
 }
 
 Pose2D OverheadTracker::getGoalPose()

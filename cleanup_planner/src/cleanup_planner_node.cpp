@@ -35,12 +35,16 @@
 #include "ros/ros.h"
 #include "simple_motion_planner.h"
 #include "overhead_tracking/CleanupObjectArray.h"
+#include "overhead_tracking/CleanupZoneArray.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Twist.h"
 
 class CleanupPlannerNode
 {
  public:
+  //
+  // Constructor
+  //
   CleanupPlannerNode(ros::NodeHandle &n) :
       n_(n), updated_goal_(false), have_goal_(false)
   {
@@ -51,9 +55,15 @@ class CleanupPlannerNode
                                    this);
     goal_pose_sub_ = n_.subscribe("goal_pose", 1,
                                   &CleanupPlannerNode::goalPoseCallback, this);
+    cleanup_zone_sub_ = n_.subscribe("cleanup_zones", 1,
+                                     &CleanupPlannerNode::cleanupZoneCallback,
+                                     this);
     cmd_vel_pub_ = n_.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
   }
 
+  //
+  // ROS Callback Methods
+  //
   void objectCallback(const overhead_tracking::CleanupObjectArrayConstPtr &msg)
   {
   }
@@ -67,44 +77,98 @@ class CleanupPlannerNode
 
   void goalPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
   {
-    if(msg->x != goal_pose_.x || msg->y != goal_pose_.y)
+    if(msg->x != user_goal_pose_.x || msg->y != user_goal_pose_.y)
     {
-      goal_pose_.x = msg->x;
-      goal_pose_.y = msg->y;
-      goal_pose_.theta = msg->theta;
+      user_goal_pose_.x = msg->x;
+      user_goal_pose_.y = msg->y;
+      user_goal_pose_.theta = msg->theta;
       updated_goal_ = true;
       have_goal_ = true;
-      mp_.setGoalPose(goal_pose_);
       ROS_INFO("Updated robot goal pose");
     }
-    if (goal_pose_.x == -1337)
+    if (user_goal_pose_.x == -1337)
     {
       have_goal_ = false;
       updated_goal_ = true;
+      ROS_INFO("Removed robot goal pose");
     }
   }
 
+  void cleanupZoneCallback(
+      const overhead_tracking::CleanupZoneArrayConstPtr &msg)
+  {
+  }
+
+  //
+  // Mid level control functions
+  //
+  bool driveToLocation(geometry_msgs::Pose2D goal, bool have_heading)
+  {
+    geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_,
+                                                          goal,
+                                                          have_heading);
+    cmd_vel_pub_.publish(cmd_vel);
+    if (mp_.atGoalPose())
+      return true;
+
+    return false;
+  }
+
+  //
+  // Behavior functions
+  //
+  bool driveToObject(overhead_tracking::CleanupObject& obj)
+  {
+    // TODO: Drive to a location near the object
+    bool at_obj = driveToLocation(obj.pose, false);
+
+    if (at_obj)
+    {
+      // TODO: Align to be pointing at the object
+    }
+    return at_obj;
+  }
+
+  void pushObject(overhead_tracking::CleanupObject& obj)
+  {
+    // Assume in line with object
+    // TODO: Drive until object is inside of a cleanup zone
+  }
+
+  void rollPushObject(overhead_tracking::CleanupObject& obj)
+  {
+    // Assume in line with object
+    // TODO: Drive for a specific amount of time / distance, then stop
+  }
+
+  void grabObject(overhead_tracking::CleanupObject& obj)
+  {
+    // Assume in line with object
+    // TODO: Close gripper (lift)
+  }
+
+  //
+  // Main Control Loop
+  //
   void spin()
   {
     while(n_.ok())
     {
+      // Drive to the user defined goal pose for now
+      // TODO: Replace this with more intelligent behavior
       if(have_goal_)
       {
-        geometry_msgs::Twist cmd_vel = mp_.getVelocityCommand(robot_pose_);
-        cmd_vel_pub_.publish(cmd_vel);
-        if (mp_.atGoalPose())
+        if(driveToLocation(user_goal_pose_, false))
         {
-          // Do something here, not sure what yet.
-          ROS_INFO("At goal pose, fool!");
           have_goal_ = false;
         }
-        updated_goal_ = false;
       }
       else if (updated_goal_)
       {
         geometry_msgs::Twist cmd_vel =  mp_.stopMoving();
         cmd_vel_pub_.publish(cmd_vel);
         updated_goal_ = false;
+        ROS_INFO("Stopped Robot!");
       }
 
       ros::spinOnce();
@@ -115,8 +179,9 @@ class CleanupPlannerNode
   ros::Subscriber cleanup_objs_sub_;
   ros::Subscriber robot_pose_sub_;
   ros::Subscriber goal_pose_sub_;
+  ros::Subscriber cleanup_zone_sub_;
   ros::Publisher cmd_vel_pub_;
-  geometry_msgs::Pose2D goal_pose_;
+  geometry_msgs::Pose2D user_goal_pose_;
   geometry_msgs::Pose2D robot_pose_;
   ros::NodeHandle n_;
 

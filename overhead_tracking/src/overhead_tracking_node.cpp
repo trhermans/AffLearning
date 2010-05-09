@@ -40,6 +40,7 @@
 #include "bg_subtract.h"
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupObject.h"
+#include "overhead_tracking/CleanupZoneArray.h"
 #include "geometry_msgs/Pose2D.h"
 
 class OverheadTrackingNode
@@ -55,6 +56,8 @@ class OverheadTrackingNode
     object_pub_ = n_.advertise<overhead_tracking::CleanupObjectArray>(
         "cleanup_objects", 1000);
     goal_pub_ = n_.advertise<geometry_msgs::Pose2D>("goal_pose", 1000);
+    cleanup_zone_pub_ = n_.advertise<overhead_tracking::CleanupZoneArray>(
+        "cleanup_zones", 1000);
   }
 
   // Publish and Subscribe methods
@@ -93,6 +96,7 @@ class OverheadTrackingNode
   {
     pose_pub_.publish(tracker_.getRobotPose());
     object_pub_.publish(tracker_.getCleanupObjects());
+    cleanup_zone_pub_.publish(tracker_.getCleanupZones());
     if (tracker_.newGoalPose())
     {
       goal_pub_.publish(tracker_.getGoalPose());
@@ -101,8 +105,8 @@ class OverheadTrackingNode
 
   void spin()
   {
-    while(n_.ok()) {
-      //publishData();
+    while(n_.ok())
+    {
       ros::spinOnce();
     }
   }
@@ -113,7 +117,7 @@ class OverheadTrackingNode
   image_transport::Subscriber image_sub_;
   sensor_msgs::CvBridge bridge_;
 
-  ros::Publisher pose_pub_, object_pub_, goal_pub_;
+  ros::Publisher pose_pub_, object_pub_, goal_pub_, cleanup_zone_pub_;
   BgSubtractGUI bg_gui_;
   OverheadTracker tracker_;
   cv::Mat current_img_;

@@ -34,12 +34,14 @@
 #include "simple_motion_planner.h"
 #include <cmath>
 
-#define TURN_ONLY_BEARING M_PI / 6.0 // 30.0 degrees
-#define DRIVE_ONLY_BEARING M_PI / 18.0 // 10.0 degrees
-#define MAX_FORWARD_VEL 0.3
-#define MIN_FORWARD_VEL 0.05
-#define MAX_ROTATIONAL_VEL 0.5
-#define MIN_ROTATIONAL_VEL 0.2
+const double SimpleMotionPlanner::TURN_ONLY_BEARING = M_PI / 6.0;
+const double SimpleMotionPlanner:: DRIVE_ONLY_BEARING  = M_PI / 18.0;
+const double SimpleMotionPlanner:: MAX_FORWARD_VEL = 0.3;
+const double SimpleMotionPlanner:: MIN_FORWARD_VEL = 0.05;
+const double SimpleMotionPlanner:: FORWARD_GAIN = 100.0;
+const double SimpleMotionPlanner:: MAX_ROTATIONAL_VEL = 0.5;
+const double SimpleMotionPlanner:: MIN_ROTATIONAL_VEL = 0.05;
+const double SimpleMotionPlanner:: ROTATIONAL_GAIN = 0.1;
 
 inline int sign(double x)
 {
@@ -73,65 +75,55 @@ double subPIangle(double theta)
   return theta;
 }
 
-double subPIdiff(double theta, double from_theta)
-{
-  while(abs(theta - from_theta) > M_PI)
-  {
-    if (theta > 0)
-      theta -= 2.0*M_PI;
-    else
-      theta += 2.0*M_PI;
-  }
-  return (theta - from_theta);
-}
-
 SimpleMotionPlanner::SimpleMotionPlanner() :
     moving_(false), sonar_avoid_(false), eps_x_(40.0), eps_y_(40.0),
     eps_theta_(M_PI/8.0), at_goal_(false)
 {
 }
-void SimpleMotionPlanner::setGoalPose(geometry_msgs::Pose2D goal_pose)
-{
-  goal_pose_.x = goal_pose.x;
-  goal_pose_.y = goal_pose.y;
-  goal_pose_.theta = goal_pose.theta;
-}
 
 geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
-    geometry_msgs::Pose2D robot_pose)
+    geometry_msgs::Pose2D robot_pose, geometry_msgs::Pose2D goal_pose,
+    bool set_heading)
 {
   current_pose_ = robot_pose;
   geometry_msgs::Twist cmd_vel;
   cmd_vel.linear.x = 0.0;
   cmd_vel.angular.z = 0.0;
 
-  double bearing_to_goal = subPIangle(atan2(robot_pose.y - goal_pose_.y,
-                                            goal_pose_.x - robot_pose.x)
+  double bearing_to_goal = subPIangle(atan2(robot_pose.y - goal_pose.y,
+                                            goal_pose.x - robot_pose.x)
                                       - robot_pose.theta);
-  double distance_to_goal = hypot(goal_pose_.y - robot_pose.y,
-                                  goal_pose_.x - robot_pose.x);
+  double distance_to_goal = hypot(goal_pose.y - robot_pose.y,
+                                  goal_pose.x - robot_pose.x);
 
   int bearing_dir = sign(bearing_to_goal);
   double bearing_mag = std::abs(bearing_to_goal);
   at_goal_ = false;
 
   // Check if we are at the goal
-  if (abs(distance_to_goal) < eps_x_ &&
-      abs(distance_to_goal) < eps_y_)
+  if (std::abs(distance_to_goal) < eps_x_ &&
+      std::abs(distance_to_goal) < eps_y_)
   {
     // Add something here for having a specific goal_theta
-    at_goal_ = true;
-    return cmd_vel;
+    double h_diff = subPIangle(goal_pose.theta - robot_pose.theta);
+    if (std::abs(h_diff) > eps_theta_)
+    {
+      cmd_vel.angular.z = sign(h_diff)*MIN_ROTATIONAL_VEL;
+    }
+    else
+    {
+      at_goal_ = true;
+    }
   } // Check if we need to turn to the goal first
   else if( bearing_mag > TURN_ONLY_BEARING)
   {
-    cmd_vel.angular.z = bearing_dir*clip(bearing_mag,
+    cmd_vel.angular.z = bearing_dir*clip(ROTATIONAL_GAIN*bearing_mag,
                                          MIN_ROTATIONAL_VEL,
                                          MAX_ROTATIONAL_VEL);
   }
   else
   {
-    cmd_vel.linear.x = clip(MAX_FORWARD_VEL / distance_to_goal,
+    cmd_vel.linear.x = clip(FORWARD_GAIN * MAX_FORWARD_VEL / distance_to_goal,
                             MIN_FORWARD_VEL,
                             MAX_FORWARD_VEL);
     if ( bearing_mag > DRIVE_ONLY_BEARING)

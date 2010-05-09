@@ -40,6 +40,7 @@
 #include <string>
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupObject.h"
+#include "overhead_tracking/CleanupZoneArray.h"
 #include "geometry_msgs/Pose2D.h"
 #include "bg_subtract.h"
 
@@ -98,6 +99,7 @@ class OverheadTracker
   }
 
   overhead_tracking::CleanupObjectArray getCleanupObjects();
+  overhead_tracking::CleanupZoneArray getCleanupZones();
   geometry_msgs::Pose2D getRobotPose();
   geometry_msgs::Pose2D getGoalPose();
   bool newGoalPose();
