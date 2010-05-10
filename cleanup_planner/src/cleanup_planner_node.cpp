@@ -34,6 +34,7 @@
 
 #include "ros/ros.h"
 #include "simple_motion_planner.h"
+#include "pioneer_wrapper.h"
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupZoneArray.h"
 #include "geometry_msgs/Pose2D.h"
@@ -46,7 +47,7 @@ class CleanupPlannerNode
   // Constructor
   //
   CleanupPlannerNode(ros::NodeHandle &n) :
-      n_(n), updated_goal_(false), have_goal_(false)
+      n_(n), pioneer_(n_), updated_goal_(false), have_goal_(false)
   {
     cleanup_objs_sub_ = n_.subscribe("cleanup_objs", 1,
                                      &CleanupPlannerNode::objectCallback, this);
@@ -99,6 +100,7 @@ class CleanupPlannerNode
   {
   }
 
+
   //
   // Mid level control functions
   //
@@ -141,10 +143,17 @@ class CleanupPlannerNode
     // TODO: Drive for a specific amount of time / distance, then stop
   }
 
-  void grabObject(overhead_tracking::CleanupObject& obj)
+  bool grabObject(overhead_tracking::CleanupObject& obj)
   {
     // Assume in line with object
-    // TODO: Close gripper (lift)
+    if (! pioneer_.gripperMoving())
+    {
+      if( pioneer_.gripperOpen())
+        pioneer_.closeGripper();
+      else
+        return true;
+    }
+    return false;
   }
 
   //
@@ -152,6 +161,21 @@ class CleanupPlannerNode
   //
   void spin()
   {
+    //
+    // Initialize Robot
+    //
+    if(n_.ok())
+    {
+      while(! pioneer_.gripperOpen() && ! pioneer_.gripperMoving())
+      {
+        pioneer_.deployGripper();
+        ros::spinOnce();
+      }
+    }
+
+    //
+    // Main Control loop
+    //
     while(n_.ok())
     {
       // Drive to the user defined goal pose for now
@@ -176,25 +200,35 @@ class CleanupPlannerNode
   }
 
  protected:
+  // Class members
   ros::Subscriber cleanup_objs_sub_;
   ros::Subscriber robot_pose_sub_;
   ros::Subscriber goal_pose_sub_;
   ros::Subscriber cleanup_zone_sub_;
+
   ros::Publisher cmd_vel_pub_;
+
   geometry_msgs::Pose2D user_goal_pose_;
   geometry_msgs::Pose2D robot_pose_;
+
   ros::NodeHandle n_;
 
   SimpleMotionPlanner mp_;
+  PioneerWrapper pioneer_;
 
   bool updated_goal_;
   bool have_goal_;
 };
 
+/**
+ * Main control point for the cleanup planner ros node
+ *
+ */
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "cleanup_planner");
   ros::NodeHandle n;
   CleanupPlannerNode cleanup_node(n);
   cleanup_node.spin();
+  return 0;
 }
