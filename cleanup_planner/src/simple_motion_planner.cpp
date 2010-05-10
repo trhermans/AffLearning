@@ -38,10 +38,10 @@ const double SimpleMotionPlanner::TURN_ONLY_BEARING = M_PI / 6.0;
 const double SimpleMotionPlanner:: DRIVE_ONLY_BEARING  = M_PI / 18.0;
 const double SimpleMotionPlanner:: MAX_FORWARD_VEL = 0.3;
 const double SimpleMotionPlanner:: MIN_FORWARD_VEL = 0.05;
-const double SimpleMotionPlanner:: FORWARD_GAIN = 100.0;
+const double SimpleMotionPlanner:: FORWARD_GAIN = 0.00025;
 const double SimpleMotionPlanner:: MAX_ROTATIONAL_VEL = 0.5;
-const double SimpleMotionPlanner:: MIN_ROTATIONAL_VEL = 0.05;
-const double SimpleMotionPlanner:: ROTATIONAL_GAIN = 0.1;
+const double SimpleMotionPlanner:: MIN_ROTATIONAL_VEL = 0.1;
+const double SimpleMotionPlanner:: ROTATIONAL_GAIN = 0.25;
 
 inline int sign(double x)
 {
@@ -123,7 +123,7 @@ geometry_msgs::Twist SimpleMotionPlanner::getVelocityCommand(
   }
   else
   {
-    cmd_vel.linear.x = clip(FORWARD_GAIN * MAX_FORWARD_VEL / distance_to_goal,
+    cmd_vel.linear.x = clip(FORWARD_GAIN * distance_to_goal,
                             MIN_FORWARD_VEL,
                             MAX_FORWARD_VEL);
     if ( bearing_mag > DRIVE_ONLY_BEARING)
