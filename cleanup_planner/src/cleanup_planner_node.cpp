@@ -145,11 +145,24 @@ class CleanupPlannerNode
 
   bool grabObject(overhead_tracking::CleanupObject& obj)
   {
-    // Assume in line with object
+    // Assume in line with object and open grippers
     if (! pioneer_.gripperMoving())
     {
       if( pioneer_.gripperOpen())
         pioneer_.closeGripper();
+      else
+        return true;
+    }
+    return false;
+  }
+
+  bool releaseObject(overhead_tracking::CleanupObject& obj)
+  {
+    // Assume gripper is closed and down
+    if (! pioneer_.gripperMoving())
+    {
+      if( pioneer_.gripperClosed())
+        pioneer_.openGripper();
       else
         return true;
     }
