@@ -49,7 +49,7 @@ class CleanupPlannerNode
   CleanupPlannerNode(ros::NodeHandle &n) :
       n_(n), pioneer_(n_), updated_goal_(false), have_goal_(false)
   {
-    cleanup_objs_sub_ = n_.subscribe("cleanup_objs", 1,
+    cleanup_objs_sub_ = n_.subscribe("cleanup_objects", 1,
                                      &CleanupPlannerNode::objectCallback, this);
     robot_pose_sub_ = n_.subscribe("robot_pose", 1,
                                    &CleanupPlannerNode::robotPoseCallback,
