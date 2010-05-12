@@ -63,6 +63,8 @@ const char OverheadTracker::TOGGLE_TRACKING_KEY = 't';
 const char OverheadTracker::INIT_ORIENTATION_KEY = 'o';
 const char OverheadTracker::PAUSE_TRACKING_KEY = 'p';
 const char OverheadTracker::CLEAR_WAYPOINT_KEY = 'z';
+const char OverheadTracker::USE_FAKE_OBJECTS_KEY = 'f';
+const char OverheadTracker::PUBLISH_FAKE_OBJECTS_KEY = 'g';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
 const int OverheadTracker::CAMERA_MAX_X = 1280; // Pixels
 const int OverheadTracker::CAMERA_MAX_Y = 960; // Pixels
@@ -97,7 +99,8 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     // Robot Orientation Stuff
     initializing_orientation_(false), orientation_offset_(0.0),
     finished_orientation_init_(false), swap_orientation_(false),
-    changed_waypoints_(false)
+    changed_waypoints_(false),
+    use_fake_objects_(false), publish_fake_objects_(false)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -128,7 +131,7 @@ void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
     OverheadVisualObject obj;
-    obj.id = getId();
+    obj.id = getID();
     obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
     obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
     obj.state.change.x = 0;
@@ -231,7 +234,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
         ++i;
       }
     }
-    ROS_DEBUG("Removed small contours");
 
     // Initialize tracking if it is currently not initialized
     if (!initialized_)
@@ -243,7 +245,8 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
         object_moments.erase(object_moments.begin() + max_idx);
         contours.erase(contours.begin() + max_idx);
       }
-      initTracks(contours, object_moments);
+      if (!use_fake_objects_)
+        initTracks(contours, object_moments);
     }
     else if(contours.size() > 0)
     {
@@ -252,23 +255,18 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       {
         updateRobotTrack(contours[max_idx], object_moments[max_idx]);
         object_moments.erase(object_moments.begin() + max_idx);
-        ROS_DEBUG("Erased robot moments");
         contours.erase(contours.begin() + max_idx);
-        ROS_DEBUG("Erased robot contours");
       }
-      ROS_DEBUG("Updating object tracks");
-      updateTracks(contours, object_moments);
-      ROS_DEBUG("Updated object tracks");
+      if (!use_fake_objects_)
+        updateTracks(contours, object_moments);
     }
 
     // Draw contours
-    if (contours.size() > 0)
+    if (contours.size() > 0  && !use_fake_objects_)
     {
-      ROS_DEBUG("Drawing contours");
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
 
-    ROS_DEBUG("Drawing contour centers");
     // Draw contour centers
     for (unsigned int i = 0; i < tracked_objects_.size(); ++i)
     {
@@ -299,7 +297,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   // Draw user defined boundaries
   if (boundary_contours_.size() > 0)
   {
-    ROS_DEBUG("Drawing user boundaries");
     drawContours(update_img, boundary_contours_, -1,
                  boundary_color_, 2);
   }
@@ -307,7 +304,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
   // Draw user defined waypoints
   if (waypoints_.size() > 0)
   {
-    ROS_DEBUG("Drawing waypoints");
     circle(update_img, waypoints_[0], 2, waypoint_color_, 4);
     circle(update_img, waypoints_[0], 16, waypoint_color_, 2);
   }
@@ -338,13 +334,11 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   vector<int> min_idx_vect;
 
   // Match new regions to previous ones
-  ROS_DEBUG("Finding nearest objects");
   for (unsigned int i = 0; i < object_moments.size() &&
            tracked_objects_.size() > 0; ++i)
   {
     double min_space_dist = DBL_MAX;
     int min_space_idx = -1;
-    ROS_DEBUG("Scores for contour %u", i);
     for (unsigned int j = 0; j < tracked_objects_.size(); ++j)
     {
       double dX = tracked_objects_[j].state.pose.x - (object_moments[i].m10 /
@@ -359,8 +353,6 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
       }
     }
     // We have found the mimimum score, update our instances...
-    ROS_DEBUG("Min spacial distnace is %le at point %u",
-              min_space_dist, min_space_idx);
     if (min_space_dist > MIN_DIST_THRESH || min_space_idx == -1)
     {
       min_idx_vect.push_back(-1);
@@ -376,7 +368,6 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
 
   }
 
-  ROS_DEBUG("Sorting multiple objects");
   // Sort out multiple objects mapped to the same previous object
   for(unsigned int i = 0; i < tracked_objects_.size(); ++i)
   {
@@ -411,15 +402,12 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     }
   }
 
-  ROS_DEBUG("Updating objects");
   vector<OverheadVisualObject> new_objects;
   // Now that we've matched tracks update the current ones
   for (unsigned int i = 0; i < object_moments.size() && i < min_idx_vect.size();
        ++i)
   {
-    ROS_DEBUG("Getting previous index for i = %d", i);
     int prev_idx = min_idx_vect[i];
-    ROS_DEBUG("Previous index was: %d", prev_idx);
     OverheadVisualObject obj;
     obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
     obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
@@ -429,7 +417,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     {
       obj.state.change.x = 0.0;
       obj.state.change.y = 0.0;
-      obj.id = getId();
+      obj.id = getID();
       new_objects.push_back(obj);
     }
     else
@@ -443,7 +431,6 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     }
   }
 
-  ROS_DEBUG("Remove unmatched objects");
   // Now that matching is done, remove unmatched objects from the previous frame
   unsigned int offset = 0;
   for (unsigned int i = 0; i < tracked_objects_.size();)
@@ -460,7 +447,6 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     }
   }
 
-  ROS_DEBUG("Add new objects");
   // Now add new objects which were not matched to objects in the previos frame
   for (unsigned int i = 0; i < new_objects.size(); ++i)
   {
@@ -545,9 +531,7 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
     }
   }
 
-  ROS_DEBUG("Updating robot state.");
   tracked_robot_.state.pose.theta = theta_prime;
-  ROS_DEBUG("Updated robot state.");
 }
 
 //
@@ -610,6 +594,17 @@ void OverheadTracker::setRobotWaypoint(Point pt)
   changed_waypoints_ = true;
   // Convert to global coordinates
   waypoints_.push_back(pt);
+}
+
+void OverheadTracker::addFakeObject(Point pt)
+{
+  OverheadVisualObject obj;
+  obj.state.pose.x = pt.x;
+  obj.state.pose.y = pt.y;
+  obj.state.change.x = 0.0;
+  obj.state.change.y = 0.0;
+  obj.id = getID();
+  tracked_objects_.push_back(obj);
 }
 
 /**
@@ -689,6 +684,14 @@ void OverheadTracker::onKeyCallback(char c)
       working_boundary_.clear();
       ROS_INFO("Cleared working boundary.");
       break;
+    case USE_FAKE_OBJECTS_KEY:
+      use_fake_objects_ = !use_fake_objects_;
+      ROS_INFO("Toggled used of fake objects.");
+      break;
+    case PUBLISH_FAKE_OBJECTS_KEY:
+      publish_fake_objects_ = !publish_fake_objects_;
+      ROS_INFO("Toggled publishing of fake objects.");
+      break;
     default:
       break;
   }
@@ -714,32 +717,38 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
 
   switch(event)
   {
-    case CV_EVENT_LBUTTONDOWN:
-      break;
-    case CV_EVENT_RBUTTONDOWN:
-      break;
-    case CV_EVENT_MBUTTONDOWN:
-      break;
-    case CV_EVENT_LBUTTONUP:
-      break;
-    case CV_EVENT_RBUTTONUP:
-      break;
-    case CV_EVENT_MBUTTONUP:
-      break;
-    case CV_EVENT_RBUTTONDBLCLK:
-      break;
     case CV_EVENT_LBUTTONDBLCLK:
-      if (!tracker->addingContour())
+      if (tracker->addingContour())
+      {
+        // Add the current point to the current contour
+        tracker->addBoundaryPoint(pt);
+      }
+      else if (tracker->fakeObjects())
+      {
+        tracker->addFakeObject(pt);
+      }
+      else
       {
         tracker->setRobotWaypoint(pt);
       }
-      // Add the current point to the current contour
-      tracker->addBoundaryPoint(pt);
-      break;
-    case CV_EVENT_MBUTTONDBLCLK:
-      break;
-    case CV_EVENT_MOUSEMOVE:
-      break;
+    // case CV_EVENT_LBUTTONDOWN:
+    //   break;
+    // case CV_EVENT_RBUTTONDOWN:
+    //   break;
+    // case CV_EVENT_MBUTTONDOWN:
+    //   break;
+    // case CV_EVENT_LBUTTONUP:
+    //   break;
+    // case CV_EVENT_RBUTTONUP:
+    //   break;
+    // case CV_EVENT_MBUTTONUP:
+    //   break;
+    // case CV_EVENT_RBUTTONDBLCLK:
+    //   break;
+    // case CV_EVENT_MBUTTONDBLCLK:
+    //   break;
+    // case CV_EVENT_MOUSEMOVE:
+    //   break;
     default:
       break;
   }
@@ -750,13 +759,23 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
  *
  * @return The next current id
  */
-int OverheadTracker::getId()
+int OverheadTracker::getID()
 {
   if (reused_ids_.size() < 1)
     return next_id_++;
   int newId = reused_ids_[reused_ids_.size() - 1];
   reused_ids_.pop_back();
   return newId;
+}
+
+vector<OverheadVisualObject> OverheadTracker::getTrackedObjects()
+{
+  if (use_fake_objects_ && !publish_fake_objects_)
+  {
+    vector<OverheadVisualObject> objs;
+    return objs;
+  }
+  return tracked_objects_;
 }
 
 /**

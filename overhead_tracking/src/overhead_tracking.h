@@ -84,6 +84,7 @@ class OverheadTracker
   void onKeyCallback(char c);
   void addBoundaryPoint(cv::Point pt);
   void setRobotWaypoint(cv::Point pt);
+  void addFakeObject(cv::Point pt);
   void drawRobot(cv::Mat& draw_on);
 
  public:
@@ -93,9 +94,11 @@ class OverheadTracker
     return drawing_boundary_;
   }
 
-  std::vector<OverheadVisualObject> getTrackedObjects()
+  std::vector<OverheadVisualObject> getTrackedObjects();
+
+  bool fakeObjects() const
   {
-    return tracked_objects_;
+    return use_fake_objects_;
   }
 
   overhead_tracking::CleanupObjectArray getCleanupObjects();
@@ -105,7 +108,7 @@ class OverheadTracker
   bool newGoalPose();
 
  protected:
-  int getId();
+  int getID();
   void releaseId(int i);
   void initializeOrientation();
   double imgXtoWorldX(double img_x);
@@ -147,6 +150,8 @@ class OverheadTracker
   bool finished_orientation_init_;
   bool swap_orientation_;
   bool changed_waypoints_;
+  bool use_fake_objects_;
+  bool publish_fake_objects_;
 
   // Constants
  public:
@@ -159,6 +164,8 @@ class OverheadTracker
   static const char INIT_ORIENTATION_KEY;
   static const char PAUSE_TRACKING_KEY;
   static const char CLEAR_WAYPOINT_KEY;
+  static const char USE_FAKE_OBJECTS_KEY;
+  static const char PUBLISH_FAKE_OBJECTS_KEY;
   static const double MIN_DIST_THRESH;
   static const int CAMERA_MAX_X;
   static const int CAMERA_MAX_Y;
