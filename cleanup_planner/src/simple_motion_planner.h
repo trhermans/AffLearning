@@ -31,6 +31,8 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
+#ifndef simple_motion_planer_h_DEFINED
+#define simple_motion_planer_h_DEFINED
 
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Twist.h"
@@ -63,3 +65,4 @@ class SimpleMotionPlanner
   static const double MIN_ROTATIONAL_VEL;
   static const double ROTATIONAL_GAIN;
 };
+#endif //simple_motion_planer_h_DEFINED
