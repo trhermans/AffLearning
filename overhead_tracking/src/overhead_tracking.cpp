@@ -65,6 +65,7 @@ const char OverheadTracker::PAUSE_TRACKING_KEY = 'p';
 const char OverheadTracker::CLEAR_WAYPOINT_KEY = 'z';
 const char OverheadTracker::USE_FAKE_OBJECTS_KEY = 'f';
 const char OverheadTracker::PUBLISH_FAKE_OBJECTS_KEY = 'g';
+const char OverheadTracker::DRAW_ROBOT_GOAL_KEY = 'l';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
 const int OverheadTracker::CAMERA_MAX_X = 1280; // Pixels
 const int OverheadTracker::CAMERA_MAX_Y = 960; // Pixels
@@ -100,7 +101,8 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     initializing_orientation_(false), orientation_offset_(0.0),
     finished_orientation_init_(false), swap_orientation_(false),
     changed_waypoints_(false),
-    use_fake_objects_(false), publish_fake_objects_(false)
+    use_fake_objects_(false), publish_fake_objects_(false),
+    force_robot_goal_draw_(false)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -131,7 +133,7 @@ void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
     OverheadVisualObject obj;
-    obj.id = getID();
+    obj.state.object_id = getID();
     obj.state.pose.x = object_moments[i].m10 / object_moments[i].m00;
     obj.state.pose.y = object_moments[i].m01 / object_moments[i].m00;
     obj.state.change.x = 0;
@@ -282,7 +284,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
 #ifdef SHOW_OBJ_IDS
       Point text_base(center.x + 4, center.y+4);
       stringstream num;
-      num << tracked_objects_[i].id;
+      num << tracked_objects_[i].state.object_id;
       putText(update_img, num.str(), text_base, FONT_HERSHEY_SIMPLEX, 1,
               change_color_, 3);
 #endif
@@ -417,7 +419,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
     {
       obj.state.change.x = 0.0;
       obj.state.change.y = 0.0;
-      obj.id = getID();
+      obj.state.object_id = getID();
       new_objects.push_back(obj);
     }
     else
@@ -426,7 +428,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
           tracked_objects_[prev_idx].state.pose.x;
       obj.state.change.y = obj.state.pose.y -
           tracked_objects_[prev_idx].state.pose.y;
-      obj.id = tracked_objects_[prev_idx].id;
+      obj.state.object_id = tracked_objects_[prev_idx].state.object_id;
       tracked_objects_[prev_idx] = obj;
     }
   }
@@ -437,7 +439,7 @@ void OverheadTracker::updateTracks(vector<vector<Point> >& object_contours,
   {
     if (min_idx_map.count(i + offset) < 1)
     {
-      releaseId(tracked_objects_[i].id);
+      releaseId(tracked_objects_[i].state.object_id);
       tracked_objects_.erase(tracked_objects_.begin() + i);
       ++offset;
     }
@@ -603,7 +605,7 @@ void OverheadTracker::addFakeObject(Point pt)
   obj.state.pose.y = pt.y;
   obj.state.change.x = 0.0;
   obj.state.change.y = 0.0;
-  obj.id = getID();
+  obj.state.object_id = getID();
   tracked_objects_.push_back(obj);
 }
 
@@ -692,6 +694,10 @@ void OverheadTracker::onKeyCallback(char c)
       publish_fake_objects_ = !publish_fake_objects_;
       ROS_INFO("Toggled publishing of fake objects.");
       break;
+    case DRAW_ROBOT_GOAL_KEY:
+      force_robot_goal_draw_ = !force_robot_goal_draw_;
+      ROS_INFO("Toggled forcing of setting robot goals.");
+      break;
     default:
       break;
   }
@@ -723,7 +729,7 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
         // Add the current point to the current contour
         tracker->addBoundaryPoint(pt);
       }
-      else if (tracker->fakeObjects())
+      else if (tracker->fakeObjects() && !tracker->forceRobotGoal())
       {
         tracker->addFakeObject(pt);
       }
@@ -840,7 +846,7 @@ CleanupObjectArray OverheadTracker::getCleanupObjects()
     obj.pose.y = tracked_objects_[i].state.pose.y;
     obj.change.x = tracked_objects_[i].state.change.x;
     obj.change.y = tracked_objects_[i].state.change.y;
-
+    obj.object_id = tracked_objects_[i].state.object_id;
     cleanup_objs.objects.push_back(obj);
   }
 

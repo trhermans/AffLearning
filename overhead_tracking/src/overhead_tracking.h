@@ -53,7 +53,6 @@ class OverheadVisualObject
   overhead_tracking::CleanupObject state;
   std::vector<cv::Point> contour;
   cv::Moments moments;
-  int id;
   OverheadVisualObject() {}
 };
 
@@ -99,6 +98,10 @@ class OverheadTracker
   bool fakeObjects() const
   {
     return use_fake_objects_;
+  }
+  bool forceRobotGoal() const
+  {
+    return force_robot_goal_draw_;
   }
 
   overhead_tracking::CleanupObjectArray getCleanupObjects();
@@ -152,6 +155,7 @@ class OverheadTracker
   bool changed_waypoints_;
   bool use_fake_objects_;
   bool publish_fake_objects_;
+  bool force_robot_goal_draw_;
 
   // Constants
  public:
@@ -166,6 +170,7 @@ class OverheadTracker
   static const char CLEAR_WAYPOINT_KEY;
   static const char USE_FAKE_OBJECTS_KEY;
   static const char PUBLISH_FAKE_OBJECTS_KEY;
+  static const char DRAW_ROBOT_GOAL_KEY;
   static const double MIN_DIST_THRESH;
   static const int CAMERA_MAX_X;
   static const int CAMERA_MAX_Y;
