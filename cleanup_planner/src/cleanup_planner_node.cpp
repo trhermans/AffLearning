@@ -100,6 +100,48 @@ class CleanupPlannerNode
   {
   }
 
+  //
+  // Main Control Loop
+  //
+  void spin()
+  {
+    //
+    // Initialize Robot
+    //
+    if(n_.ok())
+    {
+      while(! pioneer_.gripperOpen() && ! pioneer_.gripperMoving())
+      {
+        pioneer_.deployGripper();
+        ros::spinOnce();
+      }
+    }
+
+    //
+    // Main Control loop
+    //
+    while(n_.ok())
+    {
+      // Drive to the user defined goal pose for now
+      // TODO: Replace this with the TSP formulation of visiting objects
+      if(have_goal_)
+      {
+        if(driveToLocation(user_goal_pose_, false))
+        {
+          have_goal_ = false;
+        }
+      }
+      else if (updated_goal_)
+      {
+        geometry_msgs::Twist cmd_vel =  mp_.stopMoving();
+        cmd_vel_pub_.publish(cmd_vel);
+        updated_goal_ = false;
+        ROS_INFO("Stopped Robot!");
+      }
+
+      ros::spinOnce();
+    }
+  }
 
   //
   // Mid level control functions
@@ -119,6 +161,7 @@ class CleanupPlannerNode
   //
   // Behavior functions
   //
+
   bool driveToObject(overhead_tracking::CleanupObject& obj)
   {
     // TODO: Drive to a location near the object
@@ -143,73 +186,16 @@ class CleanupPlannerNode
     // TODO: Drive for a specific amount of time / distance, then stop
   }
 
-  bool grabObject(overhead_tracking::CleanupObject& obj)
+  void carryObject(overhead_tracking::CleanupObject& obj)
   {
-    // Assume in line with object and open grippers
-    if (! pioneer_.gripperMoving())
-    {
-      if( pioneer_.gripperOpen())
-        pioneer_.closeGripper();
-      else
-        return true;
-    }
-    return false;
+    // TODO: pick up the object
+    // TODO: then drive to the goal zone
   }
 
-  bool releaseObject(overhead_tracking::CleanupObject& obj)
+  void dragObject(overhead_tracking::CleanupObject& obj)
   {
-    // Assume gripper is closed and down
-    if (! pioneer_.gripperMoving())
-    {
-      if( pioneer_.gripperClosed())
-        pioneer_.openGripper();
-      else
-        return true;
-    }
-    return false;
-  }
-
-  //
-  // Main Control Loop
-  //
-  void spin()
-  {
-    //
-    // Initialize Robot
-    //
-    if(n_.ok())
-    {
-      while(! pioneer_.gripperOpen() && ! pioneer_.gripperMoving())
-      {
-        pioneer_.deployGripper();
-        ros::spinOnce();
-      }
-    }
-
-    //
-    // Main Control loop
-    //
-    while(n_.ok())
-    {
-      // Drive to the user defined goal pose for now
-      // TODO: Replace this with more intelligent behavior
-      if(have_goal_)
-      {
-        if(driveToLocation(user_goal_pose_, false))
-        {
-          have_goal_ = false;
-        }
-      }
-      else if (updated_goal_)
-      {
-        geometry_msgs::Twist cmd_vel =  mp_.stopMoving();
-        cmd_vel_pub_.publish(cmd_vel);
-        updated_goal_ = false;
-        ROS_INFO("Stopped Robot!");
-      }
-
-      ros::spinOnce();
-    }
+    // TODO: grab the object
+    // TODO: then drive to the goal zone
   }
 
  protected:
@@ -235,7 +221,6 @@ class CleanupPlannerNode
 
 /**
  * Main control point for the cleanup planner ros node
- *
  */
 int main(int argc, char** argv)
 {

@@ -105,6 +105,63 @@ void PioneerWrapper::motorStateCallback(const p2os::MotorStateConstPtr &msg)
 }
 
 //
+// Mid-level gripper behaviors
+//
+bool PioneerWrapper::grabObject()
+{
+  // Assume in line with object and open grippers
+  if (! gripperMoving())
+  {
+    if( gripperOpen())
+      closeGripper();
+    else
+      return true;
+  }
+  return false;
+}
+
+bool PioneerWrapper::releaseObject()
+{
+  // Assume gripper is closed and down
+  if (! gripperMoving())
+  {
+    if( gripperClosed())
+      openGripper();
+    else
+      return true;
+  }
+  return false;
+}
+
+bool PioneerWrapper::pickupObject()
+{
+  if (grabObject())
+  {
+    if (! liftMoving())
+    {
+      if (gripper_state_.lift.position < 1.0)
+        raiseGripper();
+      else
+        return true;
+    }
+  }
+  return false;
+}
+
+bool PioneerWrapper::putDownObject()
+{
+  if (! liftMoving())
+  {
+    if (gripper_state_.lift.position > 0.0)
+      lowerGripper();
+    else if (releaseObject())
+      return true;
+  }
+  return false;
+}
+
+
+//
 // Low Level Gripper Commands
 //
 void PioneerWrapper::deployGripper()

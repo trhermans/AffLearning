@@ -54,6 +54,14 @@ class PioneerWrapper
   void motorStateCallback(const p2os::MotorStateConstPtr &msg);
 
   //
+  // Mid level gripper behaviors
+  //
+  bool grabObject();
+  bool releaseObject();
+  bool pickupObject();
+  bool putDownObject();
+
+  //
   // Simple Command Wrappers
   //
   void deployGripper();
