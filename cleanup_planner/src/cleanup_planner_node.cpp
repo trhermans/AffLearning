@@ -37,8 +37,12 @@
 #include "pioneer_wrapper.h"
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupZoneArray.h"
+#include "overhead_tracking/CleanupObject.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/Twist.h"
+#include <vector>
+#include <map>
+#include <cfloat>
 
 class CleanupPlannerNode
 {
@@ -67,6 +71,7 @@ class CleanupPlannerNode
   //
   void objectCallback(const overhead_tracking::CleanupObjectArrayConstPtr &msg)
   {
+    cleanup_objects_ = msg->objects;
   }
 
   void robotPoseCallback(const geometry_msgs::Pose2DConstPtr &msg)
@@ -108,6 +113,7 @@ class CleanupPlannerNode
     //
     // Initialize Robot
     //
+#ifndef TEST_CLEANUP_TSP
     if(n_.ok())
     {
       while(! pioneer_.gripperOpen() && ! pioneer_.gripperMoving())
@@ -116,6 +122,7 @@ class CleanupPlannerNode
         ros::spinOnce();
       }
     }
+#endif
 
     //
     // Main Control loop
@@ -126,10 +133,19 @@ class CleanupPlannerNode
       // TODO: Replace this with the TSP formulation of visiting objects
       if(have_goal_)
       {
+#ifdef TEST_CLEANUP_TSP
+        std::vector<int> visit_path = orderObjectVisits();
+        for (unsigned int i = 0; i < visit_path.size(); ++i)
+        {
+          ROS_INFO("[%d]: %d", i, visit_path[i]);
+        }
+        have_goal_ = false;
+#else
         if(driveToLocation(user_goal_pose_, false))
         {
           have_goal_ = false;
         }
+#endif
       }
       else if (updated_goal_)
       {
@@ -156,6 +172,53 @@ class CleanupPlannerNode
       return true;
 
     return false;
+  }
+
+  std::vector<int> orderObjectVisits()
+  {
+    std::vector<int> cleanup_path;
+    std::map<int, unsigned int> cleanup_ids;
+
+    // TODO: prune objects which lie inside the cleanup zone
+    for(unsigned int i = 0; i < cleanup_objects_.size(); ++i)
+    {
+      cleanup_ids[cleanup_objects_[i].object_id] = i;
+#ifdef TEST_CLEANUP_TSP
+      ROS_INFO("[%d]: %d", i, cleanup_objects_[i].object_id);
+#endif
+    }
+
+#ifdef TEST_CLEANUP_TSP
+    geometry_msgs::Pose2D active_pose = user_goal_pose_;
+#else
+    geometry_msgs::Pose2D active_pose = robot_pose_;
+#endif
+
+
+    for(unsigned int i = 0; i < cleanup_objects_.size(); ++i)
+    {
+      double min_dist = DBL_MAX;
+      int min_id = -1;
+      std::map<int, unsigned int>::iterator it;
+      for (it = cleanup_ids.begin(); it != cleanup_ids.end(); ++it)
+      {
+        // TODO: Add penalty for heading; calculate time to position, not dist
+        double dist = hypot(active_pose.y -
+                            cleanup_objects_[it->first].pose.y,
+                            active_pose.x -
+                            cleanup_objects_[it->first].pose.x);
+        if (dist < min_dist)
+        {
+          min_dist = dist;
+          min_id = it->first;
+        }
+      }
+
+      active_pose = cleanup_objects_[cleanup_ids[min_id]].pose;
+      cleanup_path.push_back(min_id);
+      cleanup_ids.erase(min_id);
+    }
+    return cleanup_path;
   }
 
   //
@@ -214,6 +277,7 @@ class CleanupPlannerNode
 
   SimpleMotionPlanner mp_;
   PioneerWrapper pioneer_;
+  std::vector<overhead_tracking::CleanupObject> cleanup_objects_;
 
   bool updated_goal_;
   bool have_goal_;
