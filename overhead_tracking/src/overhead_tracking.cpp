@@ -240,7 +240,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     // Initialize tracking if it is currently not initialized
     if (!initialized_)
     {
-      ROS_DEBUG("Initializing tracking on run %lu", run_count_);
       if (max_idx != -1)
       {
         initRobotTrack(contours[max_idx], object_moments[max_idx]);
@@ -252,7 +251,6 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     }
     else if(contours.size() > 0)
     {
-      ROS_DEBUG("Updating tracks on run %lu", run_count_);
       if (max_idx != -1)
       {
         updateRobotTrack(contours[max_idx], object_moments[max_idx]);
