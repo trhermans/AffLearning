@@ -1,0 +1,23 @@
+# Gripper command constants
+GRIP_OPEN   = 1
+GRIP_CLOSE  = 2
+GRIP_STOP   = 3
+LIFT_UP     = 4
+LIFT_DOWN   = 5
+LIFT_STOP   = 6
+GRIP_STORE  = 7
+GRIP_DEPLOY = 8
+GRIP_HALT   = 15
+GRIP_PRESS  = 16
+LIFT_CARRY  = 17
+
+# Gripper state constants
+GRIPPER_OPEN_STATE   = 1
+GRIPPER_CLOSED_STATE = 2
+GRIPPER_MOVING_STATE = 3
+LIFT_STATIC_STATE    = 1
+LIFT_MOVING_STATE    = 2
+
+# Motor command constants
+MOTORS_ON  = 4
+MOTORS_OFF = 0
