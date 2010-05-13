@@ -26,5 +26,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_add_executable(cleanup_planner_node src/cleanup_planner_node.cpp src/simple_motion_planner.h src/simple_motion_planner.cpp src/pioneer_wrapper.cpp src/pioneer_wrapper.h)
+rosbuild_find_ros_package(pioneer_control)
+rosbuild_add_executable(cleanup_planner_node src/cleanup_planner_node.cpp
+  src/simple_motion_planner.h src/simple_motion_planner.cpp
+  ${pioneer_control_PACKAGE_PATH}/src/pioneer_wrapper.cpp
+  ${pioneer_control_PACKAGE_PATH}/src/pioneer_wrapper.h)
 #target_link_libraries(example ${PROJECT_NAME})

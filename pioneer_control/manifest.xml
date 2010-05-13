@@ -11,6 +11,7 @@
   <depend package="rospy"/>
   <depend package="p2os"/>
   <depend package="geometry_msgs"/>
+  <depend package="nav_msgs"/>
   <depend package="opencv2"/>
 
 </package>
