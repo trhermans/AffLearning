@@ -8,6 +8,7 @@ class GreedyCleanupPlanner:
         Do a greedy best-first search of the objects
         """
         cleanup_path = []
+        cleanup_path_ids = []
         cleanup_ids = {}
 
         # TODO: prune objects which lie in cleanup zones
@@ -33,9 +34,11 @@ class GreedyCleanupPlanner:
 
             active_pose = objects[cleanup_ids[min_id]].pose
             cleanup_path.append(active_pose)
+            cleanup_path_ids.append(min_id)
             cleanup_ids.pop(min_id)
 
         for i, place in enumerate(cleanup_path):
-            rospy.loginfo("[%d]: (%g, %g)" % (i, place.x, place.y))
+            rospy.loginfo("[%d]: (%g, %g)" %
+                          (cleanup_path_ids[i], place.x, place.y))
 
         return cleanup_path
