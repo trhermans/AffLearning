@@ -36,11 +36,9 @@ def stopped(controller):
 
 def setup_robot(controller):
     if controller.pioneer.gripper_open:
-        rospy.loginfo("Gripper deployed");
         return controller.goLater("finished_setup")
 
     if not controller.pioneer.gripper_moving:
-        rospy.loginfo("Deploying gripper!")
         controller.pioneer.deploy_gripper()
     return controller.stay()
 

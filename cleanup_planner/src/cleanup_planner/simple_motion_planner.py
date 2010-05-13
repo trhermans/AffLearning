@@ -46,13 +46,13 @@ _MIN_ROTATIONAL_VEL = 0.1
 _ROTATIONAL_GAIN = 0.25
 
 class SimpleMotionPlanner:
-    def __init__(self, eps_x, eps_y, eps_theta):
+    def __init__(self, eps_x = 40, eps_y = 40, eps_theta = pi/8.0):
         self.moving = False
         self.sonar_avoid = False
         self.at_goal = False
         self.eps_x = eps_x
-        self.eps_y = 0.01
-        self.eps_theta = 0.01
+        self.eps_y = eps_y
+        self.eps_theta = eps_theta
 
     def get_velocity_command(self, current_pose, goal_pose,
                              use_goal_heading = False):
@@ -77,7 +77,6 @@ class SimpleMotionPlanner:
 
         # change this to use x_dist and y_dist
         if distance_to_goal < self.eps_x and distance_to_goal < self.eps_y:
-            rospy.loginfo("Only have heading left to set")
             if use_goal_heading:
                 h_diff = subPIangle(goal_pose.theta - current_pose.theta)
                 if fabs(h_diff) > self.eps_theta:
@@ -85,7 +84,6 @@ class SimpleMotionPlanner:
                 else:
                     self.at_goal = True
             else:
-                rospy.loginfo("Nothing left to set")
                 self.at_goal = True
 
         elif bearing_mag > _TURN_ONLY_BEARING:

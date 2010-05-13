@@ -51,8 +51,7 @@ class CleanupControl(FSA.FSA):
         self.stateChangeColor = 'purple'
         self.pioneer = self.cleanup_node.pioneer
 
-        self.motion_planner = simple_motion_planner.SimpleMotionPlanner(40,40,
-                                                                        pi/8.0)
+        self.motion_planner = simple_motion_planner.SimpleMotionPlanner()
 
         self.cleanup_objects = CleanupObjectArray()
         self.cleanup_zones = CleanupZoneArray()
