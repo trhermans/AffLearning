@@ -11,3 +11,4 @@
 /bg_subtract/src/bg_subtract/__init__.py
 /bg_subtract/src/bg_subtract/__init__.pyc
 /overhead_tracking/src/overhead_tracking/__init__.pyc
+*.pyc

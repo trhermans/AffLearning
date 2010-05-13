@@ -131,41 +131,41 @@ class PioneerWrapper:
         if not self.lift_moving:
             if self.gripper_state.lift.position > 0.0:
                 self.lower_gripper()
-            else if self.release_object():
+            elif self.release_object():
                 return True
         return False
 
     #
     # Low level gripper behaviors
     #
-    def deploy_gripper():
+    def deploy_gripper(self):
         cmd = GripperState()
         cmd.grip.state = Commands.GRIP_OPEN
         cmd.lift.state = Commands.LIFT_DOWN
         self.gripper_pub.publish(cmd)
 
-    def store_gripper():
+    def store_gripper(self):
         cmd = GripperState()
         cmd.grip.state = Commands.GRIP_CLOSE
         cmd.lift.state = Commands.LIFT_UP
         self.gripper_pub.publish(cmd)
 
-    def open_gripper():
+    def open_gripper(self):
         cmd = GripperState()
         cmd.grip.state = Commands.GRIP_OPEN
         self.gripper_pub.publish(cmd)
 
-    def close_gripper():
+    def close_gripper(self):
         cmd = GripperState()
         cmd.grip.state = Commands.GRIP_CLOSE
         self.gripper_pub.publish(cmd)
 
-    def raise_gripper():
+    def raise_gripper(self):
         cmd = GripperState()
         cmd.lift.state = Commands.LIFT_UP
         self.gripper_pub.publish(cmd)
 
-    def lower_gripper():
+    def lower_gripper(self):
         cmd = GripperState()
         cmd.lift.state = Commands.LIFT_DOWN
         self.gripper_pub.publish(cmd)
@@ -173,12 +173,12 @@ class PioneerWrapper:
     #
     # Motor state control
     #
-    def activate_motors():
+    def activate_motors(self):
         m = MotorState()
         m.state = Commands.MOTORS_ON
         self.motor_pub.publish(m)
 
-    def deactivate_motors():
+    def deactivate_motors(self):
         m = MotorState()
         m.state = Commands.MOTORS_OFF
         self.motor_pub.publish(m)

@@ -11,6 +11,7 @@
   <depend package="overhead_tracking"/>
   <depend package="geometry_msgs"/>
   <depend package="p2os"/>
+  <depend package="pioneer_control"/>
 
 </package>
 

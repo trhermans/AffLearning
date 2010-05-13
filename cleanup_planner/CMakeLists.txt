@@ -16,6 +16,9 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+rosbuild_find_ros_package(pioneer_control)
+include_directories(${pioneer_control_PACKAGE_PATH}/src/)
+
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
@@ -26,7 +29,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_find_ros_package(pioneer_control)
+
 rosbuild_add_executable(cleanup_planner_node src/cleanup_planner_node.cpp
   src/simple_motion_planner.h src/simple_motion_planner.cpp
   ${pioneer_control_PACKAGE_PATH}/src/pioneer_wrapper.cpp
