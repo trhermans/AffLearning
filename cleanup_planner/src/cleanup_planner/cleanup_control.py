@@ -38,6 +38,7 @@ import roslib; roslib.load_manifest('cleanup_planner')
 #import rospy
 from geometry_msgs.msg import Pose2D
 from overhead_tracking.msg import CleanupObjectArray, CleanupZoneArray
+from math import pi
 
 class CleanupControl(FSA.FSA):
     def __init__(self, cleanup_node):
@@ -50,7 +51,8 @@ class CleanupControl(FSA.FSA):
         self.stateChangeColor = 'purple'
         self.pioneer = self.cleanup_node.pioneer
 
-        self.motion_planner = simple_motion_planner.SimpleMotionPlanner()
+        self.motion_planner = simple_motion_planner.SimpleMotionPlanner(40,40,
+                                                                        pi/8.0)
 
         self.cleanup_objects = CleanupObjectArray()
         self.cleanup_zones = CleanupZoneArray()

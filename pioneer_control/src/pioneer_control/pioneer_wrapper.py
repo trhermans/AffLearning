@@ -12,16 +12,16 @@ class PioneerWrapper:
         the pionner.
         """
         # Setup publishers to the pioneer
-        self.motor_pub = rospy.Publisher("cmd_motor_state", MotorState)
+        self.motor_pub = rospy.Publisher("motor_state_cmd", MotorState)
         self.vel_pub = rospy.Publisher("cmd_vel", Twist)
-        self.gripper_pub = rospy.Publisher("gripper_control", GripperState)
-        self.ptz_pub = rospy.Publisher("ptz_control", PTZState)
+        self.gripper_pub = rospy.Publisher("gripper_cmd", GripperState)
+        self.ptz_pub = rospy.Publisher("ptz_cmd", PTZState)
 
         # Setup subscribers to the pioneer information
-        rospy.Subscriber("motor_status", MotorState, self.motor_state_callback)
+        rospy.Subscriber("motor_state", MotorState, self.motor_state_callback)
         rospy.Subscriber("battery_state", BatteryState,
                          self.battery_state_callback)
-        rospy.Subscriber("gripper_status", GripperState,
+        rospy.Subscriber("gripper_state", GripperState,
                          self.gripper_state_callback)
         rospy.Subscriber("ptz_status", PTZState, self.ptz_state_callback)
 
@@ -55,7 +55,7 @@ class PioneerWrapper:
         """
         Callback method to store the current state of the battery
         """
-        self.battery_state.voltage = self.msg.voltage
+        self.battery_state.voltage = msg.voltage
 
     def gripper_state_callback(self, msg):
         """
@@ -80,15 +80,15 @@ class PioneerWrapper:
         self.gripper_open = False
 
         state = self.gripper_state.grip.state
-        if state == GRIPPER_MOVING_STATE:
-            self.gripper_moving = True
-        elif state == GRIPPER_OPEN_STATE:
+        if state == Commands.GRIPPER_OPEN_STATE:
+            self.gripper_open = True
+        elif state == Commands.GRIPPER_CLOSED_STATE:
             self.gripper_closed = True
-        elif state == GRIPPER_CLOSED_STATE:
-            self.gripper.open = True
+        elif state == Commands.GRIPPER_MOVING_STATE:
+            self.gripper_moving = True
 
         self.lift_moving = False
-        if self.gripper_state.lift.state == LIFT_MOVING_STATE:
+        if self.gripper_state.lift.state == Commands.LIFT_MOVING_STATE:
             self.lift_moving = True
 
     def ptz_state_callback(self, msg):

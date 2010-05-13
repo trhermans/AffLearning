@@ -29,16 +29,21 @@
 #  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 #  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
+import rospy
 
 def stopped(controller):
     return controller.stay()
 
 def setup_robot(controller):
-    if (not controller.pioneer.gripper_open and
-        not controller.pioneer.gripper_moving):
+    if controller.pioneer.gripper_open:
+        rospy.loginfo("Gripper deployed");
+        return controller.goLater("finished_setup")
+
+    if not controller.pioneer.gripper_moving:
+        rospy.loginfo("Deploying gripper!")
         controller.pioneer.deploy_gripper()
-        return controller.stay()
-    return controller.goLater("finsihed_setup")
+    return controller.stay()
+
 
 finished_setup = stopped
 
@@ -47,6 +52,7 @@ def go_to_user_goal(controller):
     State to drive the robot to a specified goal
     """
     controller.drive_to_location(controller.user_goal_pose)
+
     if controller.motion_planner.at_goal:
         return controller.goNow('stopped')
 

@@ -1,7 +1,7 @@
 <launch>
   <include file="$(find pioneer_control)/p2os_safe_key.launch"/>
   <include file="$(find overhead_tracking)/overhead.launch"/>
-  <node name="cleanup_planner" type="cleanup_planner_node" pkg="cleanup_planner"
+  <node name="cleanup_planner" type="cleanup_planner_node.py" pkg="cleanup_planner"
 	output="screen">
     <remap from="cmd_vel" to="/cmd_vel"/>
     <remap from="goal_pose" to="/goal_pose"/>
