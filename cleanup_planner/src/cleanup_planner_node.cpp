@@ -131,6 +131,7 @@ class CleanupPlannerNode
     {
       // Drive to the user defined goal pose for now
       // TODO: Replace this with the TSP formulation of visiting objects
+      // May need to add a state machine in order to accomadate this easily...
       if(have_goal_)
       {
 #ifdef TEST_CLEANUP_TSP
@@ -194,7 +195,6 @@ class CleanupPlannerNode
     geometry_msgs::Pose2D active_pose = robot_pose_;
 #endif
 
-
     for(unsigned int i = 0; i < cleanup_objects_.size(); ++i)
     {
       double min_dist = DBL_MAX;
@@ -249,16 +249,21 @@ class CleanupPlannerNode
     // TODO: Drive for a specific amount of time / distance, then stop
   }
 
-  void carryObject(overhead_tracking::CleanupObject& obj)
+  bool carryObject(overhead_tracking::CleanupObject& obj)
   {
-    // TODO: pick up the object
-    // TODO: then drive to the goal zone
+    if (!pioneer_.pickupObject())
+      return false;
+    // TODO: drive to the goal zone
+    return true;
   }
 
-  void dragObject(overhead_tracking::CleanupObject& obj)
+  bool dragObject(overhead_tracking::CleanupObject& obj)
   {
-    // TODO: grab the object
-    // TODO: then drive to the goal zone
+    if (!pioneer_.grabObject())
+      return false;
+
+    // TODO: drive to the goal zone
+    return true;
   }
 
  protected:
