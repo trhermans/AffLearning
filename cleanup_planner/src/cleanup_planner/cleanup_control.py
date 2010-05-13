@@ -34,8 +34,9 @@
 import FSA
 import cleanup_states
 import simple_motion_planner
+import greedy_cleanup_planner
 import roslib; roslib.load_manifest('cleanup_planner')
-#import rospy
+import rospy
 from geometry_msgs.msg import Pose2D
 from overhead_tracking.msg import CleanupObjectArray, CleanupZoneArray
 from math import pi
@@ -51,19 +52,35 @@ class CleanupControl(FSA.FSA):
         self.stateChangeColor = 'purple'
         self.pioneer = self.cleanup_node.pioneer
 
+        # Planners
         self.motion_planner = simple_motion_planner.SimpleMotionPlanner()
+        self.cleanup_planner = greedy_cleanup_planner.GreedyCleanupPlanner()
 
+        # Planner provided information
+        self.visit_path = []
+        self.current_object = None
+
+        # ROS provided state variables
         self.cleanup_objects = CleanupObjectArray()
         self.cleanup_zones = CleanupZoneArray()
         self.robot_pose = Pose2D()
         self.user_goal_pose = Pose2D()
 
-
     def drive_to_location(self, goal_pose, use_heading = False):
+        """
+        Takes a goal pose, uses the class's motion planner to calculate a
+        command velocity and publishes the velocity to the robot
+        """
         cmd_vel = self.motion_planner.get_velocity_command(self.robot_pose,
                                                            goal_pose,
                                                            use_heading)
         self.pioneer.vel_pub.publish(cmd_vel)
 
-    def orderObjectVisits(self):
-        pass
+    def stop_driving(self):
+        cmd_vel = self.motion_planner.stop_moving()
+        self.pioneer.vel_pub.publish(cmd_vel)
+
+    def determineVisitPath(self):
+        self.visit_path = self.cleanup_planner.get_object_ordering(
+            self.cleanup_objects, self.robot_pose)
+

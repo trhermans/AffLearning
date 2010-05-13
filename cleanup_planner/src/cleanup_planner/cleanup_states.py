@@ -60,10 +60,42 @@ def stop_robot(controller):
     """
     State to stop the robot from moving
     """
-    cmd_vel = controller.motion_planner.stop_moving()
-    controller.pioneer.vel_pub.publish(cmd_vel)
+    controller.stop_driving()
 
     return controller.goNow('stopped')
+
+
+def visit_objects(controller):
+    """
+    State to deal with visiting all of the objects in order
+    """
+    controller.determineVisitPath()
+
+    return controller.goLater('visit_next_object')
+
+def visit_next_object(controller):
+    if controller.firstFrame():
+
+        if len(controller.visit_path) == 0:
+            return controller.goLater('stopped')
+
+        controller.current_object = controller.visit_path.pop(0)
+
+    controller.drive_to_location(controller.current_object)
+
+    if controller.motion_planner.at_goal:
+        return controller.goLater('wait_at_object')
+
+    return controller.stay()
+
+def wait_at_object(controller):
+    if controller.firstFrame():
+        controller.stop_driving()
+
+    if controller.counter > 100:
+        return controller.goLater('visit_next_object')
+
+    return controller.stay()
 
 def drive_to_object(controller):
     """

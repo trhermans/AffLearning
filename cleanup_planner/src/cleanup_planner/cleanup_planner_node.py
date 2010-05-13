@@ -60,6 +60,8 @@ class CleanupPlannerNode:
         self.control = CleanupControl(self)
         self.control.setPrintFunction(rospy.loginfo)
 
+        rospy.on_shutdown(self.shutdown_hook)
+
         r = rospy.Rate(30) # 30hz
         while not rospy.is_shutdown():
             self.control.run()
@@ -78,7 +80,9 @@ class CleanupPlannerNode:
             self.control.user_goal_pose.theta = msg.theta
 
             rospy.loginfo("Updated robot goal pose")
-            self.control.switchTo('go_to_user_goal')
+
+            #self.control.switchTo('go_to_user_goal')
+            self.control.switchTo('visit_objects')
 
         if msg.x == -1337:
             self.control.switchTo('stop_robot')
@@ -89,6 +93,11 @@ class CleanupPlannerNode:
 
     def cleanup_zone_callback(self, msg):
         self.control.cleanup_zones = msg.zones
+
+    def shutdown_hook(self):
+        rospy.logdebug("Storing gripper on shutdown!")
+        self.pioneer.store_gripper()
+        rospy.sleep(2.0)
 
 if __name__ == '__main__':
     controller = CleanupPlannerNode()

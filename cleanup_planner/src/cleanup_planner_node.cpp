@@ -184,9 +184,6 @@ class CleanupPlannerNode
     for(unsigned int i = 0; i < cleanup_objects_.size(); ++i)
     {
       cleanup_ids[cleanup_objects_[i].object_id] = i;
-#ifdef TEST_CLEANUP_TSP
-      ROS_INFO("[%d]: %d", i, cleanup_objects_[i].object_id);
-#endif
     }
 
 #ifdef TEST_CLEANUP_TSP
