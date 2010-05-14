@@ -92,7 +92,7 @@ class CleanupPlannerNode:
         self.control.cleanup_objects = msg.objects
 
     def cleanup_zone_callback(self, msg):
-        self.control.cleanup_zones = msg.zones
+        self.control.set_cleanup_zones(msg.zones)
 
     def shutdown_hook(self):
         rospy.logdebug("Storing gripper on shutdown!")

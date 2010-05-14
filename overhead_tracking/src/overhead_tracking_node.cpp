@@ -96,7 +96,8 @@ class OverheadTrackingNode
   {
     pose_pub_.publish(tracker_.getRobotPose());
     object_pub_.publish(tracker_.getCleanupObjects());
-    cleanup_zone_pub_.publish(tracker_.getCleanupZones());
+    if (tracker_.newCleanupZone())
+      cleanup_zone_pub_.publish(tracker_.getCleanupZones());
     if (tracker_.newGoalPose())
     {
       goal_pub_.publish(tracker_.getGoalPose());

@@ -1,7 +1,11 @@
 from math import hypot
 import rospy
+from geometry_testing import point_in_polygon, point_polygon_intersection
 
 class GreedyCleanupPlanner:
+
+    def __init__(self):
+        self.cleanup_zones = None
 
     def get_object_ordering(self, objects, start_pose):
         """
@@ -11,13 +15,21 @@ class GreedyCleanupPlanner:
         cleanup_path_ids = []
         cleanup_ids = {}
 
-        # TODO: prune objects which lie in cleanup zones
         for i, obj in enumerate(objects):
-            cleanup_ids[obj.object_id] = i
+            if self.cleanup_zones is None:
+                rospy.logwarn("No cleanup zone!")
+                cleanup_ids[obj.object_id] = i
+            else:
+                add_point = True
+                for zone in self.cleanup_zones:
+                    if point_in_polygon(obj.pose, zone.boundary):
+                        add_point = False
+                if add_point:
+                    cleanup_ids[obj.object_id] = i
 
         active_pose = start_pose
 
-        for i in xrange(len(objects)):
+        for i in xrange(len(cleanup_ids)):
             min_dist = 10000000
             min_id = -1
 

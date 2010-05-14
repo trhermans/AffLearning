@@ -69,7 +69,7 @@ def visit_objects(controller):
     """
     State to deal with visiting all of the objects in order
     """
-    controller.determineVisitPath()
+    controller.determine_visit_path()
 
     return controller.goLater('visit_next_object')
 

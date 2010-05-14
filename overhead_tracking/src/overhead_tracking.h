@@ -109,6 +109,7 @@ class OverheadTracker
   geometry_msgs::Pose2D getRobotPose();
   geometry_msgs::Pose2D getGoalPose();
   bool newGoalPose();
+  bool newCleanupZone();
 
  protected:
   int getID();
@@ -154,8 +155,8 @@ class OverheadTracker
   bool swap_orientation_;
   bool changed_waypoints_;
   bool use_fake_objects_;
-  bool publish_fake_objects_;
   bool force_robot_goal_draw_;
+  bool new_cleanup_zone_;
 
   // Constants
  public:
@@ -169,7 +170,6 @@ class OverheadTracker
   static const char PAUSE_TRACKING_KEY;
   static const char CLEAR_WAYPOINT_KEY;
   static const char USE_FAKE_OBJECTS_KEY;
-  static const char PUBLISH_FAKE_OBJECTS_KEY;
   static const char DRAW_ROBOT_GOAL_KEY;
   static const double MIN_DIST_THRESH;
   static const int CAMERA_MAX_X;

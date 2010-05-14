@@ -64,7 +64,6 @@ const char OverheadTracker::INIT_ORIENTATION_KEY = 'o';
 const char OverheadTracker::PAUSE_TRACKING_KEY = 'p';
 const char OverheadTracker::CLEAR_WAYPOINT_KEY = 'z';
 const char OverheadTracker::USE_FAKE_OBJECTS_KEY = 'f';
-const char OverheadTracker::PUBLISH_FAKE_OBJECTS_KEY = 'g';
 const char OverheadTracker::DRAW_ROBOT_GOAL_KEY = 'l';
 const double OverheadTracker::MIN_DIST_THRESH = 500;
 const int OverheadTracker::CAMERA_MAX_X = 1280; // Pixels
@@ -101,8 +100,8 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     initializing_orientation_(false), orientation_offset_(0.0),
     finished_orientation_init_(false), swap_orientation_(false),
     changed_waypoints_(false),
-    use_fake_objects_(false), publish_fake_objects_(false),
-    force_robot_goal_draw_(false)
+    use_fake_objects_(false), force_robot_goal_draw_(false),
+    new_cleanup_zone_(false)
 {
   boundary_contours_.clear();
   working_boundary_.clear();
@@ -662,6 +661,7 @@ void OverheadTracker::onKeyCallback(char c)
         if (working_boundary_.size() >= MIN_NUM_CONTOUR_POINTS) {
           boundary_contours_.push_back(working_boundary_);
           ROS_INFO("Saved boundary.");
+          new_cleanup_zone_ = true;
         }
         else
         {
@@ -687,10 +687,6 @@ void OverheadTracker::onKeyCallback(char c)
     case USE_FAKE_OBJECTS_KEY:
       use_fake_objects_ = !use_fake_objects_;
       ROS_INFO("Toggled used of fake objects.");
-      break;
-    case PUBLISH_FAKE_OBJECTS_KEY:
-      publish_fake_objects_ = !publish_fake_objects_;
-      ROS_INFO("Toggled publishing of fake objects.");
       break;
     case DRAW_ROBOT_GOAL_KEY:
       force_robot_goal_draw_ = !force_robot_goal_draw_;
@@ -774,11 +770,6 @@ int OverheadTracker::getID()
 
 vector<OverheadVisualObject> OverheadTracker::getTrackedObjects()
 {
-  if (use_fake_objects_ && !publish_fake_objects_)
-  {
-    vector<OverheadVisualObject> objs;
-    return objs;
-  }
   return tracked_objects_;
 }
 
@@ -911,6 +902,16 @@ bool OverheadTracker::newGoalPose()
   if(changed_waypoints_)
   {
     changed_waypoints_ = false;
+    return true;
+  }
+  return false;
+}
+
+bool OverheadTracker::newCleanupZone()
+{
+  if (new_cleanup_zone_)
+  {
+    new_cleanup_zone_ = false;
     return true;
   }
   return false;
