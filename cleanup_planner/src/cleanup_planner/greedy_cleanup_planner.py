@@ -1,11 +1,12 @@
 from math import hypot
 import rospy
-from geometry_testing import point_in_polygon, point_polygon_intersection
+from geometry_testing import point_in_polygon, closest_point_on_zone
 
 class GreedyCleanupPlanner:
 
     def __init__(self):
         self.cleanup_zones = None
+        self.standoff_dist = 500.0
 
     def get_object_ordering(self, objects, start_pose):
         """
@@ -49,8 +50,35 @@ class GreedyCleanupPlanner:
             cleanup_path_ids.append(min_id)
             cleanup_ids.pop(min_id)
 
+        # Translate object positions into visit poses
+        for i, place in enumerate(cleanup_path):
+            cleanup_path[i] = self.get_object_visit_pose(place)
+
         for i, place in enumerate(cleanup_path):
             rospy.loginfo("[%d]: (%g, %g)" %
                           (cleanup_path_ids[i], place.x, place.y))
 
         return cleanup_path
+
+    def get_object_visit_pose(self, pt):
+        """
+        Method returns a pose such that the object pose given will be between
+        the returned pose and the closest point on the cleanup polygon
+        """
+
+        poly_pt = closest_point_on_zone(pt, self.cleanup_zones)
+
+        m = (pt.y - poly_pt.y) / (pt.x - poly_pt.x)
+
+        # TODO: break up the standoff_dist into component x and y changes,
+        # based on the slope
+        #x_diff = (self.standoff_dist**2 - (pt.y -
+
+        # TODO: Apply direction of offset based on x ordering
+        if pt.x < poly_pt.x:
+            pass
+        else:
+            pass
+        # TODO: get goal heading based on angle between offset point and object
+
+        return pose

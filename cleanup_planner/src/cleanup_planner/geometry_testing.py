@@ -40,14 +40,14 @@ def closest_point_on_polygon(point, poly):
     for i in xrange(n):
         p2 = poly[i % n]
 
-        (dist, closest_point) = closest_point_on_line(point, p1, p2)
+        (closest_point, dist) = closest_point_on_line(point, p1, p2)
 
         if dist < min_dist:
             min_dist = dist
             min_point = closest_point
         p1 = p2
 
-    return min_point
+    return (min_point, min_dist)
 
 def closest_point_on_line(q, x1, x2):
     """
@@ -67,13 +67,26 @@ def closest_point_on_line(q, x1, x2):
 
     if c1 <= 0:
         d1 = hypot(q.x - x1.x, q.y - x1.y)
-        return (d1, x1)
+        return (x1, d1)
     if c2 <= 0:
         d2 = hypot(q.x - x2.x, q.y - x2.y)
-        return (d2, x2)
+        return (x1, d2)
 
     P = X1 + b*v
     p = Point(P[0],P[1])
     dist = hypot(p.x - q.x, p.y - q.y)
 
-    return (dist,p)
+    return (p, dist)
+
+def closest_point_on_zone(point, zone):
+
+    min_dist = 200000000
+    min_pt = Point(-1,-1)
+
+    for poly in zone:
+        (pt,dist) = closest_point_on_polygon(point, poly)
+        if dist < min_dist:
+            min_dist = dist
+            min_pt = pt
+
+    return min_pt
