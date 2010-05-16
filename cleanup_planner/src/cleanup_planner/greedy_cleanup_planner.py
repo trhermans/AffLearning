@@ -1,5 +1,7 @@
-from math import hypot
+from math import hypot, atan2
+import roslib; roslib.load_manifest('cleanup_planner')
 import rospy
+from geometry_msgs.msg import Pose2D
 from geometry_testing import point_in_polygon, closest_point_on_zone
 
 class GreedyCleanupPlanner:
@@ -18,7 +20,7 @@ class GreedyCleanupPlanner:
 
         for i, obj in enumerate(objects):
             if self.cleanup_zones is None:
-                rospy.logwarn("No cleanup zone!")
+                #rospy.logwarn("No cleanup zone!")
                 cleanup_ids[obj.object_id] = i
             else:
                 add_point = True
@@ -54,9 +56,9 @@ class GreedyCleanupPlanner:
         for i, place in enumerate(cleanup_path):
             cleanup_path[i] = self.get_object_visit_pose(place)
 
-        for i, place in enumerate(cleanup_path):
-            rospy.loginfo("[%d]: (%g, %g)" %
-                          (cleanup_path_ids[i], place.x, place.y))
+        # for i, place in enumerate(cleanup_path):
+        #     rospy.loginfo("[%d]: (%g, %g)" %
+        #                   (cleanup_path_ids[i], place.x, place.y))
 
         return cleanup_path
 
@@ -65,20 +67,29 @@ class GreedyCleanupPlanner:
         Method returns a pose such that the object pose given will be between
         the returned pose and the closest point on the cleanup polygon
         """
+        pose = Pose2D()
+        pose.x = pt.x
+        pose.y = pt.y
 
-        poly_pt = closest_point_on_zone(pt, self.cleanup_zones)
+        poly_pt, dp = closest_point_on_zone(pt, self.cleanup_zones)
 
-        m = (pt.y - poly_pt.y) / (pt.x - poly_pt.x)
-
-        # TODO: break up the standoff_dist into component x and y changes,
-        # based on the slope
-        #x_diff = (self.standoff_dist**2 - (pt.y -
-
-        # TODO: Apply direction of offset based on x ordering
-        if pt.x < poly_pt.x:
-            pass
+        if pt.x == poly_pt.x:
+            pose.x = pt.x
+            if pt.y < poly_pt.y:
+                pose.y = pt.y - self.standoff_dist
+            else:
+                pose.y = pt.y + self.standoff_dist
         else:
-            pass
-        # TODO: get goal heading based on angle between offset point and object
+            m = (pt.y - poly_pt.y) / (pt.x - poly_pt.x)
+            standoff_x = self.standoff_dist / dp * abs(pt.x - poly_pt.x)
+
+            if pt.x < poly_pt.x:
+                pose.x = pt.x - standoff_x
+            else:
+                pose.x = pt.x + standoff_x
+
+            pose.y = m*pose.x - m*pt.x + pt.y
+
+        pose.theta = atan2(poly_pt.y - pose.y, poly_pt.x - pose.x)
 
         return pose
