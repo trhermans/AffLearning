@@ -79,12 +79,12 @@ def visit_next_object(controller):
         if len(controller.visit_path) == 0:
             return controller.goLater('stopped')
 
-        controller.current_object = controller.visit_path.pop(0)
+        controller.current_object_loc = controller.visit_path.pop(0)
 
-    controller.drive_to_location(controller.current_object, True)
+    controller.drive_to_location(controller.current_object_loc, True)
 
     if controller.motion_planner.at_goal:
-        return controller.goLater('wait_at_object')
+        return controller.goLater('cleanup_object')
 
     return controller.stay()
 
@@ -94,6 +94,16 @@ def wait_at_object(controller):
 
     if controller.counter > 100:
         return controller.goLater('visit_next_object')
+
+    return controller.stay()
+
+def cleanup_object(controller):
+    if controller.firstFrame():
+        controller.stop_driving()
+
+    # TODO: Get affordances here
+    if controller.counter > 100:
+        return controller.goLater('carry_object')
 
     return controller.stay()
 
@@ -110,7 +120,35 @@ def roll_push_object(controller):
     return controller.stay()
 
 def carry_object(controller):
-    return controller.stay()
+    """
+    """
+    # Pickup object
+    if not controller.pioneer.pickup_object():
+        return controller.stay()
+
+    # Drive to cleanup zone
+    if not controller.in_cleanup_zone():
+        return controller.goLater('drive_to_cleanup_zone')
+
+    if not controller.pioneer.put_down_object():
+        return controller.stay()
+
+    return controller.goLater('visit_next_object')
 
 def drag_object(controller):
+    return controller.stay()
+
+#
+# Helper states
+#
+def drive_to_cleanup_zone(controller):
+    """
+    State to drive to the cleanup zone, ignorant of the affordance being used
+    Once it reaches its goal, transitions back to the previous state
+    """
+    controller.drive_to_location(controller.user_goal_pose)
+
+    if controller.motion_planner.at_goal:
+        return controller.goNow(controller.lastDiffState)
+
     return controller.stay()

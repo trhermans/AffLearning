@@ -29,6 +29,16 @@ def point_in_polygon(pt, poly):
 
     return inside
 
+def point_in_zone(pt, zone):
+    """
+    Determine if the point lies within the zone
+    """
+    for poly in zone:
+        if point_in_polygon(pt, poly.boundary):
+            return True
+
+    return False
+
 def closest_point_on_polygon(point, poly):
     """
     Find the closest point on a polygon to the point

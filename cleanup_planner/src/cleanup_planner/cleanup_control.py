@@ -58,7 +58,7 @@ class CleanupControl(FSA.FSA):
 
         # Planner provided information
         self.visit_path = []
-        self.current_object = None
+        self.current_object_loc = None
 
         # ROS provided state variables
         self.cleanup_objects = CleanupObjectArray()
@@ -76,12 +76,32 @@ class CleanupControl(FSA.FSA):
         self.pioneer.vel_pub.publish(cmd_vel)
 
     def stop_driving(self):
+        """
+        Tell the robot to stop driving
+        Cleanup anything else we need to do when stopping
+        """
         cmd_vel = self.motion_planner.stop_moving()
         self.pioneer.vel_pub.publish(cmd_vel)
 
     def determine_visit_path(self):
+        """
+        Determine the order in which to cleanup the objects and the locations to
+        best manipulate them
+        """
         self.visit_path = self.cleanup_planner.get_object_ordering(
             self.cleanup_objects, self.robot_pose)
 
     def set_cleanup_zones(self, cleanup_zones):
+        """
+        Set the cleanup zones for the cleanup planner
+        """
         self.cleanup_planner.cleanup_zones = cleanup_zones
+
+    def in_cleanup_zone(self):
+        """
+        Determine if the robot is currently in the cleanup zone
+        """
+        return point_in_zone(self.robot_pose,
+                             self.cleanup_planner.cleanup_zones)
+
+
