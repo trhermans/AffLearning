@@ -510,26 +510,27 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
     // If the orientation has switched signs since last frame and the theta is
     // not near zero, then we need to switch whether we swap the orientation by
     // pi radians
-    if ((sign(tracked_robot_.state.pose.theta) != sign(theta_prime))
-        &&
-        ((fabs(tracked_robot_.state.pose.theta) > 1.0 &&
-          fabs(tracked_robot_.state.pose.theta) < (M_PI - 0.5))
+    if (sign(tracked_robot_.state.pose.theta) != sign(theta_prime))
+    {
+      ROS_INFO("Signs don't match!");
+      if ((fabs(tracked_robot_.state.pose.theta) > M_PI*0.25 &&
+           fabs(tracked_robot_.state.pose.theta) < (M_PI*0.75 ))
           ||
           (fabs(theta_prime) > 1.0 && fabs(theta_prime) < (M_PI - 0.5))
-         ))
-    {
-      swap_orientation_ = !swap_orientation_;
-      ROS_DEBUG("Swapping orientation direction to %d", swap_orientation_);
-      ROS_DEBUG("Tracked robot theta is %f", tracked_robot_.state.pose.theta);
-      ROS_DEBUG("Theta prime is %f", theta_prime);
-      // We either need to swap or need to undo the swap
-      if(theta_prime > 0.0)
-        theta_prime = theta_prime - M_PI;
-      else
-        theta_prime = theta_prime + M_PI;
+          )
+      {
+        swap_orientation_ = !swap_orientation_;
+        ROS_INFO("Swapping orientation direction to %d", swap_orientation_);
+        ROS_INFO("Tracked robot theta is %f", tracked_robot_.state.pose.theta);
+        ROS_INFO("Theta prime is %f", theta_prime);
+        // We either need to swap or need to undo the swap
+        if(theta_prime > 0.0)
+          theta_prime = theta_prime - M_PI;
+        else
+          theta_prime = theta_prime + M_PI;
+      }
     }
   }
-
   tracked_robot_.state.pose.theta = theta_prime;
 }
 

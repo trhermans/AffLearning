@@ -1,4 +1,4 @@
-from math import hypot, atan2
+from math import hypot, atan2, degrees
 import roslib; roslib.load_manifest('cleanup_planner')
 import rospy
 from geometry_msgs.msg import Pose2D
@@ -8,7 +8,7 @@ class GreedyCleanupPlanner:
 
     def __init__(self):
         self.cleanup_zones = None
-        self.standoff_dist = 500.0
+        self.standoff_dist = 200.0
 
     def get_object_ordering(self, objects, start_pose):
         """
@@ -20,7 +20,7 @@ class GreedyCleanupPlanner:
 
         for i, obj in enumerate(objects):
             if self.cleanup_zones is None:
-                #rospy.logwarn("No cleanup zone!")
+                rospy.logwarn("No cleanup zone!")
                 cleanup_ids[obj.object_id] = i
             else:
                 add_point = True
@@ -56,9 +56,10 @@ class GreedyCleanupPlanner:
         for i, place in enumerate(cleanup_path):
             cleanup_path[i] = self.get_object_visit_pose(place)
 
-        # for i, place in enumerate(cleanup_path):
-        #     rospy.loginfo("[%d]: (%g, %g)" %
-        #                   (cleanup_path_ids[i], place.x, place.y))
+        for i, place in enumerate(cleanup_path):
+            rospy.loginfo("[%d]: (%g, %g, %g)" %
+                          (cleanup_path_ids[i], place.x, place.y,
+                           degrees(place.theta)))
 
         return cleanup_path
 
@@ -90,6 +91,6 @@ class GreedyCleanupPlanner:
 
             pose.y = m*pose.x - m*pt.x + pt.y
 
-        pose.theta = atan2(poly_pt.y - pose.y, poly_pt.x - pose.x)
+        pose.theta = atan2(pose.y - poly_pt.y, poly_pt.x - pose.x)
 
         return pose

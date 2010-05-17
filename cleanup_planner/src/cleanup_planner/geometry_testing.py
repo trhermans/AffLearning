@@ -103,7 +103,7 @@ def closest_point_on_zone(point, zone):
     min_pt = Point(-1,-1)
 
     for poly in zone:
-        (pt,dist) = closest_point_on_polygon(point, poly)
+        (pt,dist) = closest_point_on_polygon(point, poly.boundary)
         if dist < min_dist:
             min_dist = dist
             min_pt = pt

@@ -81,7 +81,7 @@ def visit_next_object(controller):
 
         controller.current_object = controller.visit_path.pop(0)
 
-    controller.drive_to_location(controller.current_object)
+    controller.drive_to_location(controller.current_object, True)
 
     if controller.motion_planner.at_goal:
         return controller.goLater('wait_at_object')

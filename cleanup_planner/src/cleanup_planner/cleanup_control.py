@@ -62,7 +62,6 @@ class CleanupControl(FSA.FSA):
 
         # ROS provided state variables
         self.cleanup_objects = CleanupObjectArray()
-        #self.cleanup_zones = CleanupZoneArray()
         self.robot_pose = Pose2D()
         self.user_goal_pose = Pose2D()
 
@@ -84,9 +83,5 @@ class CleanupControl(FSA.FSA):
         self.visit_path = self.cleanup_planner.get_object_ordering(
             self.cleanup_objects, self.robot_pose)
 
-    def get_cleanup_zones(self):
-        return self.cleanup_zones
-
     def set_cleanup_zones(self, cleanup_zones):
-        self.cleanup_zones = cleanup_zones
         self.cleanup_planner.cleanup_zones = cleanup_zones

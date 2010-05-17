@@ -44,15 +44,15 @@ _FORWARD_GAIN = 0.00025
 _MAX_ROTATIONAL_VEL = 0.5
 _MIN_ROTATIONAL_VEL = 0.1
 _ROTATIONAL_GAIN = 0.25
+_EPS_X = 40
+_EPS_Y = 40
+_EPS_THETA = pi / 36.0
 
 class SimpleMotionPlanner:
-    def __init__(self, eps_x = 40, eps_y = 40, eps_theta = pi/8.0):
+    def __init__(self):
         self.moving = False
         self.sonar_avoid = False
         self.at_goal = False
-        self.eps_x = eps_x
-        self.eps_y = eps_y
-        self.eps_theta = eps_theta
 
     def get_velocity_command(self, current_pose, goal_pose,
                              use_goal_heading = False):
@@ -76,10 +76,10 @@ class SimpleMotionPlanner:
         self.at_goal = False
 
         # change this to use x_dist and y_dist
-        if distance_to_goal < self.eps_x and distance_to_goal < self.eps_y:
+        if distance_to_goal < _EPS_X and distance_to_goal < _EPS_Y:
             if use_goal_heading:
-                h_diff = subPIangle(goal_pose.theta - current_pose.theta)
-                if fabs(h_diff) > self.eps_theta:
+                h_diff = sub_pi_angle(goal_pose.theta - current_pose.theta)
+                if fabs(h_diff) > _EPS_THETA:
                     cmd_vel.angular.z = sign(h_diff)*_MIN_ROTATIONAL_VEL
                 else:
                     self.at_goal = True
