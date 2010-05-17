@@ -63,7 +63,7 @@ class CleanupControl(FSA.FSA):
         # ROS provided state variables
         self.cleanup_objects = CleanupObjectArray()
         self.robot_pose = Pose2D()
-        self.user_goal_pose = Pose2D()
+        self.cleanup_goal_pose = Pose2D()
 
     def drive_to_location(self, goal_pose, use_heading = False):
         """

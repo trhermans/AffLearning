@@ -146,7 +146,9 @@ def drive_to_cleanup_zone(controller):
     State to drive to the cleanup zone, ignorant of the affordance being used
     Once it reaches its goal, transitions back to the previous state
     """
-    controller.drive_to_location(controller.user_goal_pose)
+    if controller.firstFrame():
+        controller.cleanup_goal_pose = controller.planner.get_cleanup_pose()
+    controller.drive_to_location(controller.cleanup_goal_pose)
 
     if controller.motion_planner.at_goal:
         return controller.goNow(controller.lastDiffState)

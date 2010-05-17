@@ -94,3 +94,6 @@ class GreedyCleanupPlanner:
         pose.theta = atan2(pose.y - poly_pt.y, poly_pt.x - pose.x)
 
         return pose
+
+    def get_cleanup_pose():
+        pass
