@@ -80,7 +80,9 @@ class SimpleMotionPlanner:
             if use_goal_heading:
                 h_diff = sub_pi_angle(goal_pose.theta - current_pose.theta)
                 if fabs(h_diff) > _EPS_THETA:
-                    cmd_vel.angular.z = sign(h_diff)*_MIN_ROTATIONAL_VEL
+                    cmd_vel.angular.z = sign(h_diff)*clip(
+                        _ROTATIONAL_GAIN*abs(h_diff), _MIN_ROTATIONAL_VEL,
+                        _MAX_ROTATIONAL_VEL)
                 else:
                     self.at_goal = True
             else:

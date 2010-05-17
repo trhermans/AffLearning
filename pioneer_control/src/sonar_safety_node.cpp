@@ -47,7 +47,7 @@ class SonarSafetyNode
 {
  public:
   SonarSafetyNode(ros::NodeHandle n) :
-      n_(n), safe_dist_(0.3), forward_detection_(false),
+      n_(n), safe_dist_(0.2), forward_detection_(false),
       lateral_detection_(false)
   {
     sonar_sub_ = n_.subscribe("sonar", 1, &SonarSafetyNode::sonarCallback,
