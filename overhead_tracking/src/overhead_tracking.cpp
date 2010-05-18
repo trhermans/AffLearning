@@ -127,7 +127,6 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
 void OverheadTracker::initTracks(vector<vector<Point> >& object_contours,
                                  std::vector<cv::Moments>& object_moments)
 {
-  initialized_ = true;
   tracked_objects_.clear();
   for (unsigned int i = 0; i < object_moments.size(); ++i)
   {
@@ -247,6 +246,7 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
       }
       if (!use_fake_objects_)
         initTracks(contours, object_moments);
+      initialized_ = true;
     }
     else if(contours.size() > 0)
     {
@@ -516,7 +516,6 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
     // pi radians
     if (sign(tracked_robot_.state.pose.theta) != sign(theta_prime))
     {
-      ROS_INFO("Signs don't match!");
       if ((fabs(tracked_robot_.state.pose.theta) > M_PI*0.25 &&
            fabs(tracked_robot_.state.pose.theta) < (M_PI*0.75 ))
           ||
@@ -524,9 +523,9 @@ void OverheadTracker::updateRobotTrack(vector<Point>& robot_contour,
           )
       {
         swap_orientation_ = !swap_orientation_;
-        ROS_INFO("Swapping orientation direction to %d", swap_orientation_);
-        ROS_INFO("Tracked robot theta is %f", tracked_robot_.state.pose.theta);
-        ROS_INFO("Theta prime is %f", theta_prime);
+        ROS_DEBUG("Swapping orientation direction to %d", swap_orientation_);
+        ROS_DEBUG("Tracked robot theta is %f", tracked_robot_.state.pose.theta);
+        ROS_DEBUG("Theta prime is %f", theta_prime);
         // We either need to swap or need to undo the swap
         if(theta_prime > 0.0)
           theta_prime = theta_prime - M_PI;
@@ -691,11 +690,17 @@ void OverheadTracker::onKeyCallback(char c)
       break;
     case USE_FAKE_OBJECTS_KEY:
       use_fake_objects_ = !use_fake_objects_;
-      ROS_INFO("Toggled used of fake objects.");
+      if (use_fake_objects_)
+        ROS_INFO("Using fake objects.");
+      else
+        ROS_INFO("Not using fake objects.");
       break;
     case DRAW_ROBOT_GOAL_KEY:
       force_robot_goal_draw_ = !force_robot_goal_draw_;
-      ROS_INFO("Toggled forcing of setting robot goals.");
+      if (force_robot_goal_draw_)
+        ROS_INFO("Forcing setting of robot goals.");
+      else
+        ROS_INFO("Not forcing setting of robot goals.");
       break;
     default:
       break;
