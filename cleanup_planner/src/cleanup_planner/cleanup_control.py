@@ -40,6 +40,7 @@ import rospy
 from geometry_msgs.msg import Pose2D
 from overhead_tracking.msg import CleanupObjectArray, CleanupZoneArray
 from math import pi
+from geometry_testing import point_in_zone
 
 class CleanupControl(FSA.FSA):
     def __init__(self, cleanup_node):
@@ -64,6 +65,7 @@ class CleanupControl(FSA.FSA):
         self.cleanup_objects = CleanupObjectArray()
         self.robot_pose = Pose2D()
         self.cleanup_goal_pose = Pose2D()
+        self.user_goal_pose = Pose2D()
 
     def drive_to_location(self, goal_pose, use_heading = False):
         """
@@ -104,4 +106,7 @@ class CleanupControl(FSA.FSA):
         return point_in_zone(self.robot_pose,
                              self.cleanup_planner.cleanup_zones)
 
+    def set_cleanup_goal_pose(self):
+        self.cleanup_goal_pose = self.cleanup_planner.get_cleanup_pose(
+            self.robot_pose)
 

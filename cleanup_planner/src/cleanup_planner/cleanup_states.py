@@ -121,6 +121,7 @@ def roll_push_object(controller):
 
 def carry_object(controller):
     """
+    Pick up an object, drive it into the cleanup zone
     """
     # Pickup object
     if not controller.pioneer.pickup_object():
@@ -130,6 +131,12 @@ def carry_object(controller):
     if not controller.in_cleanup_zone():
         return controller.goLater('drive_to_cleanup_zone')
 
+    return controller.goLater('put_down_object')
+
+def put_down_object(controller):
+    """
+    Put down an object then go to the next object
+    """
     if not controller.pioneer.put_down_object():
         return controller.stay()
 
@@ -147,8 +154,8 @@ def drive_to_cleanup_zone(controller):
     Once it reaches its goal, transitions back to the previous state
     """
     if controller.firstFrame():
-        controller.cleanup_goal_pose = controller.planner.get_cleanup_pose()
-    controller.drive_to_location(controller.cleanup_goal_pose)
+        controller.set_cleanup_goal_pose()
+    controller.drive_to_location(controller.cleanup_goal_pose, False)
 
     if controller.motion_planner.at_goal:
         return controller.goNow(controller.lastDiffState)

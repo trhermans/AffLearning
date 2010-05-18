@@ -103,16 +103,16 @@ class PioneerWrapper:
     # Mid level gripper behaviors
     #
     def grab_object(self):
-        if not gripper_moving:
-            if gripper_open:
+        if not self.gripper_moving:
+            if self.gripper_open:
                 self.close_gripper()
             else:
                 return True
         return False
 
     def release_object(self):
-        if not gripper_moving:
-            if gripper_closed:
+        if not self.gripper_moving:
+            if self.gripper_closed:
                 self.open_gripper()
             else:
                 return True

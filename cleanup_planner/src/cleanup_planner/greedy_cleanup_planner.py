@@ -8,7 +8,8 @@ class GreedyCleanupPlanner:
 
     def __init__(self):
         self.cleanup_zones = None
-        self.standoff_dist = 200.0
+        self.standoff_dist = 150.0
+        self.goal_standoff_dist = 50.0
 
     def get_object_ordering(self, objects, start_pose):
         """
@@ -95,5 +96,31 @@ class GreedyCleanupPlanner:
 
         return pose
 
-    def get_cleanup_pose():
-        pass
+    def get_cleanup_pose(self, robot_pose):
+        pose = Pose2D()
+        pose.x = robot_pose.x
+        pose.y = robot_pose.y
+
+        poly_pt, dp = closest_point_on_zone(robot_pose, self.cleanup_zones)
+
+        if robot_pose.x == poly_pt.x:
+            pose.x = poly_pt.x
+            if robot_pose.y < poly_pt.y:
+                pose.y = poly_pt.y + self.goal_standoff_dist
+            else:
+                pose.y = poly_pt.y - self.goal_standoff_dist
+        else:
+            m = (robot_pose.y - poly_pt.y) / (robot_pose.x - poly_pt.x)
+            standoff_x = (self.goal_standoff_dist / dp *
+                          abs(robot_pose.x - poly_pt.x))
+
+            if robot_pose.x < poly_pt.x:
+                pose.x = poly_pt.x + standoff_x
+            else:
+                pose.x = poly_pt.x - standoff_x
+
+            pose.y = m*pose.x - m*poly_pt.x + poly_pt.y
+
+        #pose.theta = atan2(pose.y - poly_pt.y, poly_pt.x - pose.x)
+
+        return pose
