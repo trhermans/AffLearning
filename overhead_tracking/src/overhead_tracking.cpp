@@ -256,12 +256,16 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
         object_moments.erase(object_moments.begin() + max_idx);
         contours.erase(contours.begin() + max_idx);
       }
+      else
+      {
+        ROS_WARN("No robot found?");
+      }
       if (!use_fake_objects_)
         updateTracks(contours, object_moments);
     }
 
     // Draw contours
-    if (contours.size() > 0  && !use_fake_objects_)
+    if (contours.size() > 0  /*&& !use_fake_objects_*/)
     {
       drawContours(update_img, contours, -1, object_contour_color_, 2);
     }
