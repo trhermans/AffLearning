@@ -4,6 +4,7 @@ import rospy
 import pioneer_command_constants as Commands
 from p2os.msg import GripperState, MotorState, PTZState, BatteryState
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 
 class PioneerWrapper:
     def __init__(self):
@@ -24,13 +25,16 @@ class PioneerWrapper:
         rospy.Subscriber("gripper_state", GripperState,
                          self.gripper_state_callback)
         rospy.Subscriber("ptz_status", PTZState, self.ptz_state_callback)
+        rospy.Subscriber("pose", Odometry, self.odometry_callback)
 
         # Class state fields
         self.motor_state = MotorState()
         self.battery_state = BatteryState()
         self.ptz_state = PTZState()
         self.gripper_state = GripperState()
+        self.odometry_pose = Odometry()
 
+        # Query variables
         self.gripper_moving = False
         self.gripper_open = False
         self.gripper_closed = False
@@ -98,6 +102,13 @@ class PioneerWrapper:
         self.ptz_state.pan = msg.pan
         self.ptz_state.tilt = msg.tilt
         self.ptz_state.zoom = msg.zoom
+
+    def odometry_callback(self, msg):
+        """
+        Callback method to store the current odometry state
+        """
+        self.odometry_pose.pose = msg.pose
+        self.odometry_pose.twist = msg.twist
 
     #
     # Mid level gripper behaviors

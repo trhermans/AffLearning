@@ -30,6 +30,9 @@
 #  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 import rospy
+import cleanup_constants as Constants
+from geometry_msgs.msg import Twist
+from math import hypot
 
 def stopped(controller):
     return controller.stay()
@@ -103,7 +106,7 @@ def cleanup_object(controller):
 
     # TODO: Get affordances here
     if controller.counter > 100:
-        return controller.goLater('drag_object')
+        return controller.goLater('carry_object')
 
     return controller.stay()
 
@@ -156,7 +159,28 @@ def put_down_object(controller):
         return controller.stay()
 
     # Back off object
+    return controller.goLater('back_off_object')
 
+def back_off_object(controller):
+    if controller.firstFrame():
+        controller.odometry_start_pose = controller.pioneer.odometry_pose.pose
+        controller.stop_driving()
+
+    current_odo_pose = controller.pioneer.odometry_pose.pose
+    odo_dist = hypot(current_odo_pose.pose.position.x -
+                     controller.odometry_start_pose.pose.position.x,
+                     current_odo_pose.pose.position.y -
+                     controller.odometry_start_pose.pose.position.y)
+
+    rospy.logdebug("Distance backed off is: %g" % odo_dist)
+    if Constants.BACK_OFF_DIST > odo_dist:
+        # send back up command
+        cmd_vel = Twist()
+        cmd_vel.linear.x = Constants.BACK_OFF_X_VEL
+        controller.pioneer.vel_pub.publish(cmd_vel)
+        return controller.stay()
+
+    controller.stop_driving()
     return controller.goLater('visit_next_object')
 
 #

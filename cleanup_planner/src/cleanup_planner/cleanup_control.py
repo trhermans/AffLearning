@@ -66,6 +66,7 @@ class CleanupControl(FSA.FSA):
         self.robot_pose = Pose2D()
         self.cleanup_goal_pose = Pose2D()
         self.user_goal_pose = Pose2D()
+        self.odometry_start_pose = Pose2D()
 
     def drive_to_location(self, goal_pose, use_heading = False):
         """
