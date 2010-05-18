@@ -34,19 +34,15 @@ import cleanup_constants as Constants
 from geometry_msgs.msg import Twist
 from math import hypot
 
+#
+# Navigation States
+#
+
 def stopped(controller):
+    """
+    State that does nothing, once the robot is stopped
+    """
     return controller.stay()
-
-def setup_robot(controller):
-    if controller.pioneer.gripper_open:
-        return controller.goLater("finished_setup")
-
-    if not controller.pioneer.gripper_moving:
-        controller.pioneer.deploy_gripper()
-    return controller.stay()
-
-
-finished_setup = stopped
 
 def go_to_user_goal(controller):
     """
@@ -67,16 +63,18 @@ def stop_robot(controller):
 
     return controller.goNow('stopped')
 
-
 def visit_objects(controller):
     """
-    State to deal with visiting all of the objects in order
+    State to deal with visiting all of the objects in order given the planner
     """
     controller.determine_visit_path()
 
     return controller.goLater('visit_next_object')
 
 def visit_next_object(controller):
+    """
+    Drive to the next object in the cleanup plan
+    """
     if controller.firstFrame():
 
         if len(controller.visit_path) == 0:
@@ -91,37 +89,67 @@ def visit_next_object(controller):
 
     return controller.stay()
 
-def wait_at_object(controller):
-    if controller.firstFrame():
-        controller.stop_driving()
-
-    if controller.counter > 100:
-        return controller.goLater('visit_next_object')
-
-    return controller.stay()
+#
+# Cleanup Behaviors
+#
 
 def cleanup_object(controller):
+    """
+    State to organize the cleanup behavior selection once the robot has reached
+    the object
+    """
     if controller.firstFrame():
         controller.stop_driving()
 
-    # TODO: Get affordances here
-    if controller.counter > 100:
-        return controller.goLater('carry_object')
-
-    return controller.stay()
+    # TODO: Select based on affordances here
+    # return controller.goLater('push_object')
+    # return controller.goLater('roll_push_object')
+    # return controller.goLater('drag_object')
+    return controller.goLater('carry_object')
 
 def push_object(controller):
     """
     Push the object into the cleanup zone.
     """
-    return controller.stay()
+    if controller.firstFrame():
+        controller.stop_driving()
+
+    if not controller.in_cleanup_zone():
+        # send back up command
+        cmd_vel = Twist()
+        cmd_vel.linear.x = Constants.PUSH_X_VEL
+        controller.pioneer.vel_pub.publish(cmd_vel)
+        return controller.stay()
+
+    controller.stop_driving()
+
+    return controller.goLater('back_off_object')
 
 def roll_push_object(controller):
     """
     Shove the object so that it rolls.
     Do so on a trajectory towards the cleanup zone.
     """
-    return controller.stay()
+    if controller.firstFrame():
+        controller.odometry_start_pose = controller.pioneer.odometry_pose.pose
+        controller.stop_driving()
+
+    current_odo_pose = controller.pioneer.odometry_pose.pose
+    odo_dist = hypot(current_odo_pose.pose.position.x -
+                     controller.odometry_start_pose.pose.position.x,
+                     current_odo_pose.pose.position.y -
+                     controller.odometry_start_pose.pose.position.y)
+
+    if Constants.PUSH_ROLL_DIST > odo_dist:
+        # send back up command
+        cmd_vel = Twist()
+        cmd_vel.linear.x = Constants.PUSH_ROLL_X_VEL
+        controller.pioneer.vel_pub.publish(cmd_vel)
+        return controller.stay()
+
+    controller.stop_driving()
+
+    return controller.goLater('visit_next_object')
 
 def carry_object(controller):
     """
@@ -161,28 +189,6 @@ def put_down_object(controller):
     # Back off object
     return controller.goLater('back_off_object')
 
-def back_off_object(controller):
-    if controller.firstFrame():
-        controller.odometry_start_pose = controller.pioneer.odometry_pose.pose
-        controller.stop_driving()
-
-    current_odo_pose = controller.pioneer.odometry_pose.pose
-    odo_dist = hypot(current_odo_pose.pose.position.x -
-                     controller.odometry_start_pose.pose.position.x,
-                     current_odo_pose.pose.position.y -
-                     controller.odometry_start_pose.pose.position.y)
-
-    rospy.logdebug("Distance backed off is: %g" % odo_dist)
-    if Constants.BACK_OFF_DIST > odo_dist:
-        # send back up command
-        cmd_vel = Twist()
-        cmd_vel.linear.x = Constants.BACK_OFF_X_VEL
-        controller.pioneer.vel_pub.publish(cmd_vel)
-        return controller.stay()
-
-    controller.stop_driving()
-    return controller.goLater('visit_next_object')
-
 #
 # Helper states
 #
@@ -199,3 +205,45 @@ def drive_to_cleanup_zone(controller):
         return controller.goNow(controller.lastDiffState)
 
     return controller.stay()
+
+def back_off_object(controller):
+    """
+    Uses raw odometry measurements to back away from an object
+    """
+    if controller.firstFrame():
+        controller.odometry_start_pose = controller.pioneer.odometry_pose.pose
+        controller.stop_driving()
+
+    current_odo_pose = controller.pioneer.odometry_pose.pose
+    odo_dist = hypot(current_odo_pose.pose.position.x -
+                     controller.odometry_start_pose.pose.position.x,
+                     current_odo_pose.pose.position.y -
+                     controller.odometry_start_pose.pose.position.y)
+
+    if Constants.BACK_OFF_DIST > odo_dist:
+        # send back up command
+        cmd_vel = Twist()
+        cmd_vel.linear.x = Constants.BACK_OFF_X_VEL
+        controller.pioneer.vel_pub.publish(cmd_vel)
+        return controller.stay()
+
+    controller.stop_driving()
+    return controller.goLater('visit_next_object')
+
+#
+# Robot setup states
+#
+
+def setup_robot(controller):
+    """
+    State to stop the robot
+    """
+    if controller.pioneer.gripper_open:
+        return controller.goLater("finished_setup")
+
+    if not controller.pioneer.gripper_moving:
+        controller.pioneer.deploy_gripper()
+    return controller.stay()
+
+# State name alias
+finished_setup = stopped
