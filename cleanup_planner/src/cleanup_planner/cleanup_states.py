@@ -103,25 +103,26 @@ def cleanup_object(controller):
 
     # TODO: Get affordances here
     if controller.counter > 100:
-        return controller.goLater('carry_object')
+        return controller.goLater('drag_object')
 
-    return controller.stay()
-
-def drive_to_object(controller):
-    """
-    State for driving to an object
-    """
     return controller.stay()
 
 def push_object(controller):
+    """
+    Push the object into the cleanup zone.
+    """
     return controller.stay()
 
 def roll_push_object(controller):
+    """
+    Shove the object so that it rolls.
+    Do so on a trajectory towards the cleanup zone.
+    """
     return controller.stay()
 
 def carry_object(controller):
     """
-    Pick up an object, drive it into the cleanup zone
+    Pick up an object, drive it into the cleanup zone.
     """
     # Pickup object
     if not controller.pioneer.pickup_object():
@@ -133,17 +134,30 @@ def carry_object(controller):
 
     return controller.goLater('put_down_object')
 
+def drag_object(controller):
+    """
+    Grab an object, drag / drive it into the cleanup zone.
+    """
+    # Pickup object
+    if not controller.pioneer.grab_object():
+        return controller.stay()
+
+    # Drive to cleanup zone
+    if not controller.in_cleanup_zone():
+        return controller.goLater('drive_to_cleanup_zone')
+
+    return controller.goLater('put_down_object')
+
 def put_down_object(controller):
     """
-    Put down an object then go to the next object
+    Put down an object then back up before going to the next object.
     """
     if not controller.pioneer.put_down_object():
         return controller.stay()
 
-    return controller.goLater('visit_next_object')
+    # Back off object
 
-def drag_object(controller):
-    return controller.stay()
+    return controller.goLater('visit_next_object')
 
 #
 # Helper states
