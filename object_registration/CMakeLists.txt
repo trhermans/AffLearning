@@ -28,5 +28,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(test_offline src/test_offline.cpp)
 rosbuild_add_executable(sliding_window src/sliding_window.cpp src/sliding_window.h
-  src/features/color_histogram.h)
+  src/features/color_histogram.h src/saliency/center_surround.cpp
+  src/saliency/center_surround.h)
 #target_link_libraries(example ${PROJECT_NAME})

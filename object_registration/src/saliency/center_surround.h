@@ -32,57 +32,28 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "sliding_window.h"
-#include <opencv/highgui.h>
-#include <sstream>
-#include <iostream>
+#ifndef center_surround_h_DEFINED
+#define center_surround_h_DEFINED
 
-#include "features/color_histogram.h"
-#include "saliency/center_surround.h"
+#include <opencv/cv.h>
+#include <opencv/cxcore.h>
+#include <vector>
 
-using cv::Mat;
-using cv::Rect;
-using std::pair;
-using std::vector;
-
-int main(int argc, char** argv)
+class CenterSurroundMapper
 {
-  int count = 1;
-  if (argc > 1)
-    count = atoi(argv[1]);
+ public:
+  CenterSurroundMapper();
 
-  SlidingWindowDetector<ColorHistogram<12> > swd;
-  CenterSurroundMapper csm;
+  cv::Mat operator()(cv::Mat& frame);
 
-  vector<pair<int,int> > windows;
-  //windows.push_back(pair<int,int>( 64,  64));
-  windows.push_back(pair<int,int>( 64, 128));
-  // windows.push_back(pair<int,int>(128,  64));
-  // windows.push_back(pair<int,int>(128, 128));
+ protected:
+  int num_scales_;
+  std::vector<cv::Mat> I_scales_;
+  std::vector<cv::Mat> R_scales_;
+  std::vector<cv::Mat> G_scales_;
+  std::vector<cv::Mat> B_scales_;
+  std::vector<cv::Mat> Y_scales_;
+  std::vector<cv::Mat> O_scales_;
+};
 
-  for (int i = 0; i < count; i++)
-  {
-    std::stringstream filepath;
-    filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
-    std::cout << "Image " << i << std::endl;
-    Mat frame;
-    frame = cv::imread(filepath.str());
-    Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
-    cvtColor(frame, bw_frame, CV_RGB2GRAY);
-
-    // cv::namedWindow("saliency map");
-    // cv::namedWindow("raw img");
-
-    try
-    {
-      //swd.scanImage(frame, windows);
-      Mat disp_img = csm(frame);
-      cv::waitKey();
-    }
-    catch(cv::Exception e)
-    {
-      std::cerr << e.err << std::endl;
-    }
-  }
-  return 0;
-}
+#endif // center_surround_h_DEFINED

@@ -32,57 +32,42 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "sliding_window.h"
+#include "center_surround.h"
 #include <opencv/highgui.h>
-#include <sstream>
-#include <iostream>
 
-#include "features/color_histogram.h"
-#include "saliency/center_surround.h"
+#include <iostream>
+#include <sstream>
+
 
 using cv::Mat;
-using cv::Rect;
-using std::pair;
 using std::vector;
 
-int main(int argc, char** argv)
+CenterSurroundMapper::CenterSurroundMapper() :
+    num_scales_(8)
 {
-  int count = 1;
-  if (argc > 1)
-    count = atoi(argv[1]);
+  scales_.clear();
+}
 
-  SlidingWindowDetector<ColorHistogram<12> > swd;
-  CenterSurroundMapper csm;
+Mat CenterSurroundMapper::operator()(Mat& frame)
+{
+  Mat i_frame(frame.rows, frame.cols, CV_8UC1);
 
-  vector<pair<int,int> > windows;
-  //windows.push_back(pair<int,int>( 64,  64));
-  windows.push_back(pair<int,int>( 64, 128));
-  // windows.push_back(pair<int,int>(128,  64));
-  // windows.push_back(pair<int,int>(128, 128));
+  cvtColor(frame, i_frame, CV_RGB2GRAY);
 
-  for (int i = 0; i < count; i++)
-  {
-    std::stringstream filepath;
-    filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
-    std::cout << "Image " << i << std::endl;
-    Mat frame;
-    frame = cv::imread(filepath.str());
-    Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
-    cvtColor(frame, bw_frame, CV_RGB2GRAY);
+  Mat r_frame(frame.rows, frame.cols, CV_8UC1);
+  Mat g_frame(frame.rows, frame.cols, CV_8UC1);
+  Mat b_frame(frame.rows, frame.cols, CV_8UC1);
+  Mat y_frame(frame.rows, frame.cols, CV_8UC1);
 
-    // cv::namedWindow("saliency map");
-    // cv::namedWindow("raw img");
+  r_frame = frame
 
-    try
-    {
-      //swd.scanImage(frame, windows);
-      Mat disp_img = csm(frame);
-      cv::waitKey();
-    }
-    catch(cv::Exception e)
-    {
-      std::cerr << e.err << std::endl;
-    }
-  }
-  return 0;
+  cv::buildPyramid(i_frame, I_scales_, num_scales_);
+  cv::buildPyramid(r_frame, R_scales_, num_scales_);
+  cv::buildPyramid(g_frame, G_scales_, num_scales_);
+  cv::buildPyramid(b_frame, B_scales_, num_scales_);
+  cv::buildPyramid(y_frame, Y_scales_, num_scales_);
+
+  Mat saliency_map(frame.rows, frame.cols, CV_8UC1);
+  cvtColor(frame, saliency_map, CV_RGB2GRAY);
+  return saliency_map;
 }
