@@ -32,49 +32,42 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "sliding_window.h"
-#include <sstream>
-#include <opencv/highgui.h>
-#include <iostream>
-#include "features/color_histogram.h"
+#ifndef color_histogram_h_DEFINED
+#define color_histogram_h_DEFINED
 
-using cv::Mat;
-using cv::Rect;
-using std::pair;
-using std::vector;
+#include <opencv/cv.h>
+#include <opencv/cxcore.h>
 
-int main(int argc, char** argv)
+template<int n_bins> class ColorHistogram
 {
-  int count = 1;
-  if (argc > 1)
-    count = atoi(argv[1]);
-
-  SlidingWindowDetector<ColorHistogram<12> > swd;
-
-  vector<pair<int,int> > windows;
-  //windows.push_back(pair<int,int>( 64,  64));
-  windows.push_back(pair<int,int>( 64, 128));
-  // windows.push_back(pair<int,int>(128,  64));
-  // windows.push_back(pair<int,int>(128, 128));
-
-  for (int i = 0; i < count; i++)
+ public:
+  ColorHistogram()
   {
-    std::stringstream filepath;
-    filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
-    std::cout << "Image " << i << std::endl;
-    Mat frame;
-    frame = cv::imread(filepath.str());
-    Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
-    cvtColor(frame, bw_frame, CV_RGB2GRAY);
-
-    try
-    {
-      swd.scanImage(frame, windows);
-    }
-    catch(cv::Exception e)
-    {
-      std::cerr << e.err << std::endl;
-    }
   }
-  return 0;
-}
+
+  void operator()(cv::Mat patch)
+  {
+    int bins[] = {n_bins, n_bins, n_bins};
+    int channels[] = {0,1,2};
+    float r_ranges[] = {0,256};
+    float g_ranges[] = {0,256};
+    float b_ranges[] = {0,256};
+    const float* ranges[] = {r_ranges, g_ranges, b_ranges};
+
+    cv::MatND patch_desc;
+
+    cv::calcHist(&patch, 1, channels, cv::Mat(), patch_desc, 3, bins, ranges,
+                 true, false);
+    descriptor_ = patch_desc;
+  }
+
+  cv::MatND getDescriptor()
+  {
+    return descriptor_;
+  }
+
+ protected:
+  cv::MatND descriptor_;
+};
+
+#endif // color_histogram_h_DEFINED

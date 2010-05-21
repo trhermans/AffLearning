@@ -40,11 +40,78 @@
 #include <vector>
 #include <utility>
 
-class SlidingWindowDetector
+template<class FeatureType> class SlidingWindowDetector
 {
  public:
-  void scanImage(cv::Mat& img, int window_width, int window_height);
-  void scanImage(cv::Mat& img, std::vector<std::pair<int, int> >& windows);
+  /**
+   * Default constructor
+   */
+  SlidingWindowDetector() : feature_()
+  {
+    windows_.clear();
+  }
+
+  /**
+   * Function wrapper to perform the sliding window task across a given image for
+   * an arbitrary number of window shapes and sizes, using the class set windows
+   *
+   * @param img The image to perform sliding windows over
+   */
+  void scanImage(cv::Mat& img)
+  {
+    for (unsigned int i = 0; i < windows_.size(); ++i)
+    {
+      scanImage(img, windows_[i].first, windows_[i].second);
+    }
+  }
+
+  /**
+   * Function wrapper to perform the sliding window task across a given image for
+   * an arbitrary number of window shapes and sizes
+   *
+   * @param img The image to perform sliding windows over
+   * @param windows A vector of integer pairs of window height and widths
+   */
+  void scanImage(cv::Mat& img, std::vector<std::pair<int, int> >& windows)
+  {
+    for (unsigned int i = 0; i < windows.size(); ++i)
+    {
+      scanImage(img, windows[i].first, windows[i].second);
+    }
+  }
+
+  /**
+   * Workhorse function of the class that extracts the specified windows across
+   * the image and sends them to the callback task
+   *
+   * @param img The image to perform sliding windows over
+   * @param window_width Width of the sliding window to be used
+   * @param window_height Height of the sliding window to be used
+   */
+  void scanImage(cv::Mat& img, int window_width, int window_height)
+  {
+    // Scan the window horizontally first
+    for (int r = 0; r + window_height < img.rows; r++)
+    {
+      for (int c = 0; c + window_width < img.cols; c++)
+      {
+        cv::Rect roi(c, r, window_width, window_height);
+        cv::Mat window = img(roi);
+        feature_(window);
+      }
+    }
+  }
+
+  void setWindowSizes(std::vector<std::pair<int, int> > windows)
+  {
+    windows_ = windows;
+  }
+
+ protected:
+  std::vector<std::pair<int, int> > windows_;
+
+ public:
+  FeatureType feature_;
 };
 
 #endif // sliding_window_h_DEFINED
