@@ -54,10 +54,10 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
 
   cvtColor(frame, i_frame, CV_RGB2GRAY);
 
-  Mat r_frame(frame.rows, frame.cols, CV_8UC1);
-  Mat g_frame(frame.rows, frame.cols, CV_8UC1);
-  Mat b_frame(frame.rows, frame.cols, CV_8UC1);
-  Mat y_frame(frame.rows, frame.cols, CV_8UC1);
+  Mat R(frame.rows, frame.cols, CV_8UC1);
+  Mat G(frame.rows, frame.cols, CV_8UC1);
+  Mat B(frame.rows, frame.cols, CV_8UC1);
+  Mat Y(frame.rows, frame.cols, CV_8UC1);
 
   vector<Mat> channels;
 
@@ -75,6 +75,13 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
 
   Mat saliency_map(frame.rows, frame.cols, CV_8UC1);
   cvtColor(frame, saliency_map, CV_RGB2GRAY);
+
+  R = channels[0] - (channels[1] + channels[2])/2.0;
+  G = channels[1] - (channels[0] + channels[2])/2.0;
+  B = channels[2] - (channels[0] + channels[1])/2.0;
+  Y = ((channels[0] + channels[1])/2.0 - (channels[0] - channels[1])/2.0
+       - channels[2]);
+
   return saliency_map;
 }
 
