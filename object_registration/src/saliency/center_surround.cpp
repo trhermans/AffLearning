@@ -59,7 +59,13 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   Mat b_frame(frame.rows, frame.cols, CV_8UC1);
   Mat y_frame(frame.rows, frame.cols, CV_8UC1);
 
-  r_frame = frame
+  vector<Mat> channels;
+
+  split(frame, channels);
+  cv::imshow("red", channels[0]);
+  cv::imshow("green", channels[1]);
+  cv::imshow("blue", channels[2]);
+  cv::waitKey();
 
   cv::buildPyramid(i_frame, I_scales_, num_scales_);
   cv::buildPyramid(r_frame, R_scales_, num_scales_);
@@ -70,4 +76,16 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   Mat saliency_map(frame.rows, frame.cols, CV_8UC1);
   cvtColor(frame, saliency_map, CV_RGB2GRAY);
   return saliency_map;
+}
+
+Mat CenterSurroundMapper::mapDifference(Mat& s, Mat& c)
+{
+  // Upsample c to s resolution
+  Mat s_prime(c.rows, c.cols. CV_8UC1);
+  cv::pyrUp(s, s_prime, cv::Size(s_prime.cols, s_prime.rows));
+
+  // Take pixelwise difference
+  Mat diff = c - s_prime;
+  // Return this map
+  return diff;
 }
