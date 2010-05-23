@@ -45,15 +45,17 @@ class CenterSurroundMapper
   CenterSurroundMapper();
 
   cv::Mat operator()(cv::Mat& frame);
+  cv::Mat mapDifference(cv::Mat& m_c, cv::Mat& m_s, int c, int s);
+  cv::Mat mapSum(std::vector<cv::Mat>& maps);
+  cv::Mat normalize(cv::Mat& map, int max_val);
 
  protected:
   int num_scales_;
-  std::vector<cv::Mat> I_scales_;
-  std::vector<cv::Mat> R_scales_;
-  std::vector<cv::Mat> G_scales_;
-  std::vector<cv::Mat> B_scales_;
-  std::vector<cv::Mat> Y_scales_;
-  std::vector<cv::Mat> O_scales_;
+  int min_c_;
+  int max_c_;
+  int min_delta_;
+  int max_delta_;
+
 };
 
 #endif // center_surround_h_DEFINED
