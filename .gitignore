@@ -12,3 +12,8 @@
 /bg_subtract/src/bg_subtract/__init__.pyc
 /overhead_tracking/src/overhead_tracking/__init__.pyc
 *.pyc
+/overhead_tracking/msg_gen/cpp/include/overhead_tracking/CleanupObject.h
+/overhead_tracking/msg_gen/cpp/include/overhead_tracking/CleanupObjectArray.h
+/overhead_tracking/msg_gen/cpp/include/overhead_tracking/CleanupZone.h
+/overhead_tracking/msg_gen/cpp/include/overhead_tracking/CleanupZoneArray.h
+/overhead_tracking/msg_gen/generated
