@@ -40,9 +40,9 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
-#include <p2os/GripperState.h>
-#include <p2os/MotorState.h>
-#include <p2os/PTZState.h>
+#include <p2os_driver/GripperState.h>
+#include <p2os_driver/MotorState.h>
+#include <p2os_driver/PTZState.h>
 
 // Motor State
 #define KEYCODE_P 0x70
@@ -99,9 +99,9 @@ class TeleopPioneerKeyboard
   double pan_rate_, tilt_rate_, zoom_rate_;
   double fast_pan_rate_, fast_tilt_rate_, fast_zoom_rate_;
   geometry_msgs::Twist cmd_vel_;
-  p2os::MotorState motor_cmd_;
-  p2os::GripperState grip_cmd_;
-  p2os::PTZState ptz_cmd_;
+  p2os_driver::MotorState motor_cmd_;
+  p2os_driver::GripperState grip_cmd_;
+  p2os_driver::PTZState ptz_cmd_;
 
   ros::NodeHandle n_;
   ros::Publisher motor_pub_;
@@ -118,10 +118,10 @@ class TeleopPioneerKeyboard
     grip_cmd_.grip.state = grip_cmd_.lift.state = 0;
     motor_cmd_.state = MOTOR_OFF_VAL;
 
-    motor_pub_ = n_.advertise<p2os::MotorState>("motor_state_cmd", 1);
+    motor_pub_ = n_.advertise<p2os_driver::MotorState>("motor_state_cmd", 1);
     vel_pub_ = n_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-    grip_pub_ = n_.advertise<p2os::GripperState>("gripper_cmd", 1);
-    ptz_pub_ = n_.advertise<p2os::PTZState>("ptz_cmd", 1);
+    grip_pub_ = n_.advertise<p2os_driver::GripperState>("gripper_cmd", 1);
+    ptz_pub_ = n_.advertise<p2os_driver::PTZState>("ptz_cmd", 1);
 
     ros::NodeHandle n_private("~");
     n_private.param("walk_vel", walk_vel_, 0.5);

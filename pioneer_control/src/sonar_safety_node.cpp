@@ -33,7 +33,7 @@
  *********************************************************************/
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
-#include "p2os/SonarArray.h"
+#include "p2os_driver/SonarArray.h"
 
 /**
  * @file   sonar_safety_node.cpp
@@ -86,7 +86,7 @@ class SonarSafetyNode
    *
    * @param sonar_data Latest msg on the "/sonar" topic
    */
-  void sonarCallback(const p2os::SonarArrayConstPtr &sonar_data)
+  void sonarCallback(const p2os_driver::SonarArrayConstPtr &sonar_data)
   {
     bool prev_forward_detection = forward_detection_;
     bool prev_lateral_detection = lateral_detection_;

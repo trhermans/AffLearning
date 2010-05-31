@@ -2,7 +2,7 @@
   <machine name="robot" address="p3dx" ros-root="/home/wall/ros/ros" user="wall" ros-package-path="/home/wall/ros/dev:/home/wall/ros/stacks:/home/wall/ros/usc-ros-pkg:/home/wall/ros/brown-ros-pkg">
   </machine>
 
-  <node name="pioneer" machine="robot" pkg="p2os" type="p2os" output="screen" required="true">
+  <node name="pioneer" machine="robot" pkg="p2os_driver" type="p2os" output="screen" required="true">
     <remap from="gripper_control" to="/gripper_cmd"/>
     <remap from="cmd_vel" to="/safe_cmd_vel"/>
     <remap from="cmd_motor_state" to="/motor_state_cmd"/>

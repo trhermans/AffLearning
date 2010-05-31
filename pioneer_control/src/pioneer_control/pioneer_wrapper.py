@@ -2,7 +2,7 @@
 import roslib; roslib.load_manifest('pioneer_control')
 import rospy
 import pioneer_command_constants as Commands
-from p2os.msg import GripperState, MotorState, PTZState, BatteryState
+from p2os_driver.msg import GripperState, MotorState, PTZState, BatteryState
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 
