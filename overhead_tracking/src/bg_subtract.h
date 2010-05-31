@@ -35,8 +35,8 @@
 #ifndef bg_subtract_h_DEFINED
 #define bg_subtract_h_DEFINED
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 #include <vector>
 
 /**

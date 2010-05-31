@@ -33,7 +33,7 @@
  *********************************************************************/
 #include "overhead_tracking.h"
 #include <ros/ros.h>
-#include <opencv/highgui.h>
+#include "opencv2/highgui/highgui.hpp"
 #include <map>
 #include <sstream>
 #include "geometry_msgs/Point.h"
@@ -218,7 +218,14 @@ void OverheadTracker::updateDisplay(Mat update_img_raw,
     for (unsigned int i = 0; i < contours.size();)
     {
       Moments m;
-      m = moments(contours[i]);
+
+      // Convert contours to cv::Mat for Opencv 2.1
+      Mat pt_mat = Mat(contours[i]);
+      m = moments(pt_mat);
+
+      // Older OpenCV 2.0 version
+      //m = moments(contours[i]);
+
       if (m.m00 < min_contour_size_)
       {
         contours.erase(contours.begin()+i);

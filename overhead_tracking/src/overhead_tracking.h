@@ -34,10 +34,16 @@
 #ifndef overhead_tracking_h_DEFINED
 #define overhead_tracking_h_DEFINED
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+//#include "opencv2/video/tracking.hpp"
+//#include "opencv2/features2d/features2d.hpp"
+//#include "opencv2/calib3d/calib3d.hpp"
+//#include "opencv2/objdetect/objdetect.hpp"
+
 #include <vector>
 #include <string>
+
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupObject.h"
 #include "overhead_tracking/CleanupZoneArray.h"
