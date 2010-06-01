@@ -63,7 +63,8 @@ int main(int argc, char** argv)
   for (int i = 0; i < count; i++)
   {
     std::stringstream filepath;
-    filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
+    //filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
+    filepath << "/home/tucker/data/robot.jpg";
     std::cout << "Image " << i << std::endl;
     Mat frame;
     frame = cv::imread(filepath.str());

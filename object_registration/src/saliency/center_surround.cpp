@@ -41,9 +41,11 @@
 using cv::Mat;
 using std::vector;
 
-CenterSurroundMapper::CenterSurroundMapper() :
-    num_scales_(8), min_c_(2), max_c_(4), min_delta_(3), max_delta_(4)
+CenterSurroundMapper::CenterSurroundMapper(int min_c, int max_c, int min_delta,
+                                           int max_delta) :
+    min_c_(min_c), max_c_(max_c), min_delta_(min_delta), max_delta_(max_delta)
 {
+  num_scales_ = max_c_ + max_delta_;
 }
 
 Mat CenterSurroundMapper::operator()(Mat& frame)
@@ -61,7 +63,9 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   vector<Mat> G_scales;
   vector<Mat> B_scales;
   vector<Mat> Y_scales;
-  vector<Mat> O_scales;
+  vector<Mat> L_scales;
+  vector<vector<Mat> > O_sigma_n; // First index scale, second index relative
+                                  // orientation (default 0 - 3)
 
   // Get the component color channels
   vector<Mat> channels;
@@ -106,6 +110,21 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
       Mat YB_s = Y_scales[s] - B_scales[s];
       BY_cs.push_back(mapDifference(BY_c, YB_s, c, s));
     }
+  }
+
+  //
+  // Build Gabor orientation Pyramid
+  //
+
+  // Get laplacians at all scales (TODO: this can be done while building pyr)
+  for(unsigned int i = 0; i < I_scales.size(); ++i)
+  {
+    Mat lap;
+    cv::Laplacian(I_scales[i], lap, I_scales[i].depth());
+    L_scales.push_back(lap);
+
+    // Get the N orientation maps for each scale
+    
   }
 
   //
@@ -318,4 +337,9 @@ Mat CenterSurroundMapper::normalize(Mat& map, int M)
   fact *= 255/(fact*M);
   normalized *= fact;
   return normalized;
+}
+
+Mat CenterSurroundMapper::getOrientationMap(Mat& img, float theta)
+{
+  return img;
 }
