@@ -43,9 +43,20 @@ using std::vector;
 
 CenterSurroundMapper::CenterSurroundMapper(int min_c, int max_c, int min_delta,
                                            int max_delta) :
-    min_c_(min_c), max_c_(max_c), min_delta_(min_delta), max_delta_(max_delta)
+    min_c_(min_c), max_c_(max_c), min_delta_(min_delta), max_delta_(max_delta),
+    N_(4)
 {
   num_scales_ = max_c_ + max_delta_;
+  generateGaborFilters();
+}
+
+void generateGaborFilters()
+{
+  for (unsigned int alpha = 0; alpha < N_; ++alpha)
+  {
+    float theta = M_PI/N_*alpha;
+    
+  }
 }
 
 Mat CenterSurroundMapper::operator()(Mat& frame)
@@ -64,7 +75,7 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   vector<Mat> B_scales;
   vector<Mat> Y_scales;
   vector<Mat> L_scales;
-  vector<vector<Mat> > O_sigma_n; // First index scale, second index relative
+  vector<vector<Mat> > O_n_sigma; // First index scale, second index relative
                                   // orientation (default 0 - 3)
 
   // Get the component color channels
@@ -116,15 +127,23 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   // Build Gabor orientation Pyramid
   //
 
-  // Get laplacians at all scales (TODO: this can be done while building pyr)
+  // Get laplacians at all scales (TODO: do this while building pyr via DoG)
   for(unsigned int i = 0; i < I_scales.size(); ++i)
   {
     Mat lap;
     cv::Laplacian(I_scales[i], lap, I_scales[i].depth());
     L_scales.push_back(lap);
+    vector<Mat> O_sigma;
 
     // Get the N orientation maps for each scale
-    
+    for (int i = 0; i < N_; i++)
+    {
+      Mat lap_m_i(lap.rows, lap.cols, lap.type());
+      lap.copyTo(lap_m_i);
+      Mat m_i(lap_m_i.rows/2, lap_m_i.cols/2, lap_m_i.type());
+      // For each of the N orientation maps smooth and downsample
+      cv::pyrDown(lap_m_i, m_i);
+    }
   }
 
   //

@@ -57,7 +57,8 @@ class CenterSurroundMapper
   int max_c_;
   int min_delta_;
   int max_delta_;
-
+  int N_;
+  
 };
 
 #endif // center_surround_h_DEFINED
