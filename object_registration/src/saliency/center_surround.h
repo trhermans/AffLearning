@@ -50,7 +50,8 @@ class CenterSurroundMapper
   cv::Mat mapSum(std::vector<cv::Mat>& maps);
   cv::Mat normalize(cv::Mat& map, int max_val);
   cv::Mat getOrientationMap(cv::Mat& img, float theta);
-
+  void generateGaborFilters();
+  
  protected:
   int num_scales_;
   int min_c_;
@@ -58,7 +59,7 @@ class CenterSurroundMapper
   int min_delta_;
   int max_delta_;
   int N_;
-  
+  int gabor_size_;
 };
 
 #endif // center_surround_h_DEFINED

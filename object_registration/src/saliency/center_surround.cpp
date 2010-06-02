@@ -44,18 +44,30 @@ using std::vector;
 CenterSurroundMapper::CenterSurroundMapper(int min_c, int max_c, int min_delta,
                                            int max_delta) :
     min_c_(min_c), max_c_(max_c), min_delta_(min_delta), max_delta_(max_delta),
-    N_(4)
+    N_(4), gabor_size_(7)
 {
   num_scales_ = max_c_ + max_delta_;
   generateGaborFilters();
 }
 
-void generateGaborFilters()
+void CenterSurroundMapper::generateGaborFilters()
 {
+  Mat base_x(gabor_size_, gabor_size_, CV_64FC1);
+  Mat base_y(gabor_size_, gabor_size_, CV_64FC1);
+
+  // Populate the base x and y matrices
+  for (int i = 0; i < base_x.cols; ++i)
+  {
+    for (int j = 0; j < base_x.rows; ++j)
+    {
+      base_x.at<double>(i,j) = i - gabor_size_/2;
+      base_y.at<double>(i,j) = j - gabor_size_/2;
+    }
+  }
+
   for (unsigned int alpha = 0; alpha < N_; ++alpha)
   {
     float theta = M_PI/N_*alpha;
-    
   }
 }
 
