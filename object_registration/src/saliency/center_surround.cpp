@@ -90,7 +90,7 @@ void CenterSurroundMapper::generateGaborFilters()
   }
 }
 
-Mat CenterSurroundMapper::operator()(Mat& frame)
+Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
 {
   Mat I(frame.rows, frame.cols, CV_8UC1);
 
@@ -314,6 +314,22 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
                   normalize(C_bar, bar_max)*(1/3.0) +
                   normalize(O_bar, bar_max)*(1/3.0));
 
+  if (use_gradient) // TODO: Max nicer functionality for specifying this map
+  {
+    Mat gradient_map(I_bar.rows, I_bar.cols, CV_8UC1);
+    saliency_map.copyTo(gradient_map);
+
+    for (unsigned int i = 0; i < gradient_map.rows; ++i)
+    {
+      for (unsigned int j = 0; j < gradient_map.cols; ++j)
+      {
+        gradient_map.at<uchar>(i,j) = 255*i/gradient_map.rows;
+      }
+    }
+
+    saliency_map = saliency_map*0.5 + gradient_map*0.5;
+  }
+
   Mat scaled;
   cv::equalizeHist(saliency_map, scaled);
   // cv::imshow("I bar", I_bar);
@@ -323,8 +339,7 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   // cv::imshow("Scaled", scaled);
   // cv::waitKey();
 
-
-  return scaled;//saliency_map;
+  return scaled;
 }
 
 Mat CenterSurroundMapper::mapDifference(Mat& m_c, Mat& m_s, int c, int s)

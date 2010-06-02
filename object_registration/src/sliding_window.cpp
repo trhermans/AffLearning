@@ -100,9 +100,9 @@ int main(int argc, char** argv)
       // Get the saliency map
       Mat saliency_img = csm(frame);
       cv::imshow("saliency map scaled", saliency_img);
-      cv::waitKey(6);
 
       // Find the most salient region
+      swd.feature_.resetMax();
       swd.scanImage(saliency_img, windows);
 
       // Report what this region is
@@ -123,7 +123,10 @@ int main(int argc, char** argv)
                     CV_RGB(255,0,0));
 
       cv::imshow("Most salient region", disp_img);
-      cv::waitKey(30);
+      if (i == count - 1)
+        cv::waitKey();
+      else
+        cv::waitKey(30);
     }
     catch(cv::Exception e)
     {

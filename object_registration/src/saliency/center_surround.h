@@ -45,7 +45,7 @@ class CenterSurroundMapper
   CenterSurroundMapper(int min_c=2, int max_c=4, int min_delta = 3,
                        int max_delta = 4);
 
-  cv::Mat operator()(cv::Mat& frame);
+  cv::Mat operator()(cv::Mat& frame, bool use_gradient=false);
   cv::Mat mapDifference(cv::Mat& m_c, cv::Mat& m_s, int c, int s);
   cv::Mat mapSum(std::vector<cv::Mat>& maps);
   cv::Mat normalize(cv::Mat& map, int max_val);
