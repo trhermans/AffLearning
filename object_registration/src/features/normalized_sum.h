@@ -32,42 +32,56 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef color_histogram_h_DEFINED
-#define color_histogram_h_DEFINED
+#ifndef normalized_sum_h_DEFINED
+#define normalized_sum_h_DEFINED
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 
-template<int n_bins> class ColorHistogram
+class NormalizedSum
 {
  public:
-  ColorHistogram()
+  NormalizedSum() :
+      max_sum(-1.0), max_loc(0, 0, 0, 0)
   {
   }
 
-  void operator()(cv::Mat patch, cv::Rect window)
+  float operator()(cv::Mat& img, cv::Rect& window)
   {
-    int bins[] = {n_bins, n_bins, n_bins};
-    int channels[] = {0,1,2};
-    float r_ranges[] = {0,256};
-    float g_ranges[] = {0,256};
-    float b_ranges[] = {0,256};
-    const float* ranges[] = {r_ranges, g_ranges, b_ranges};
+    float area_sum = 0.0;
+    for (int i = 0; i < img.rows; ++i)
+    {
+      for (int j = 0; j < img.cols; ++j)
+      {
+        area_sum += img.at<uchar>(i,j);
+      }
+    }
 
-    cv::MatND patch_desc;
+    area_sum /= (img.cols*img.rows);
 
-    cv::calcHist(&patch, 1, channels, cv::Mat(), patch_desc, 3, bins, ranges,
-                 true, false);
-    descriptor_ = patch_desc;
+    if (area_sum > max_sum)
+    {
+      max_sum = area_sum;
+      max_loc.x = window.x;
+      max_loc.y = window.y;
+      max_loc.height = window.height;
+      max_loc.width = window.width;
+    }
+
+    return area_sum;
   }
 
-  cv::MatND getDescriptor()
+  float getMax() const { return max_sum; }
+  cv::Rect getMaxLoc() const { return max_loc; }
+  void resetMax()
   {
-    return descriptor_;
+    max_sum = -1.0;
+    max_loc.x = 0.0;
+    max_loc.y = 0.0;
+    max_loc.height = 0.0;
+    max_loc.width = 0.0;
   }
-
  protected:
-  cv::MatND descriptor_;
+  float max_sum;
+  cv::Rect max_loc;
 };
-
-#endif // color_histogram_h_DEFINED
+#endif // normalized_sum_h_DEFINED

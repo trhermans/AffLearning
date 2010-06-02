@@ -33,7 +33,7 @@
  *********************************************************************/
 
 #include "center_surround.h"
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -316,15 +316,15 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
 
   Mat scaled;
   cv::equalizeHist(saliency_map, scaled);
-  cv::imshow("I bar", I_bar);
-  cv::imshow("C bar", C_bar);
-  cv::imshow("O bar", O_bar);
-  cv::imshow("Saliency", saliency_map);
-  cv::imshow("Scaled", scaled);
-  cv::waitKey();
+  // cv::imshow("I bar", I_bar);
+  // cv::imshow("C bar", C_bar);
+  // cv::imshow("O bar", O_bar);
+  // cv::imshow("Saliency", saliency_map);
+  // cv::imshow("Scaled", scaled);
+  // cv::waitKey();
 
 
-  return saliency_map;
+  return scaled;//saliency_map;
 }
 
 Mat CenterSurroundMapper::mapDifference(Mat& m_c, Mat& m_s, int c, int s)

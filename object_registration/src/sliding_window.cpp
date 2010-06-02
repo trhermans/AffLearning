@@ -33,12 +33,12 @@
  *********************************************************************/
 
 #include "sliding_window.h"
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 #include <sstream>
 #include <iostream>
 
-#include "features/color_histogram.h"
 #include "saliency/center_surround.h"
+#include "features/normalized_sum.h"
 
 using cv::Mat;
 using cv::Rect;
@@ -48,37 +48,84 @@ using std::vector;
 int main(int argc, char** argv)
 {
   int count = 1;
+
   if (argc > 1)
     count = atoi(argv[1]);
 
-  SlidingWindowDetector<ColorHistogram<12> > swd;
-  CenterSurroundMapper csm;
-
   vector<pair<int,int> > windows;
-  //windows.push_back(pair<int,int>( 64,  64));
+  windows.push_back(pair<int,int>(  8,   8));
+  windows.push_back(pair<int,int>( 16,   8));
+  windows.push_back(pair<int,int>(  8,  16));
+  windows.push_back(pair<int,int>( 32,   8));
+  windows.push_back(pair<int,int>(  8,  32));
+  windows.push_back(pair<int,int>( 16,  16));
+  windows.push_back(pair<int,int>( 16,  32));
+  windows.push_back(pair<int,int>( 32,  16));
+  windows.push_back(pair<int,int>( 32,  32));
+  windows.push_back(pair<int,int>( 64,  32));
+  windows.push_back(pair<int,int>( 32,  64));
+  windows.push_back(pair<int,int>( 64,  64));
+  windows.push_back(pair<int,int>( 32, 128));
+  windows.push_back(pair<int,int>(128,  32));
   windows.push_back(pair<int,int>( 64, 128));
-  // windows.push_back(pair<int,int>(128,  64));
-  // windows.push_back(pair<int,int>(128, 128));
+  windows.push_back(pair<int,int>(128,  64));
+  windows.push_back(pair<int,int>( 64, 256));
+  windows.push_back(pair<int,int>(256,  64));
+  windows.push_back(pair<int,int>(128, 128));
+  windows.push_back(pair<int,int>(128, 256));
+  windows.push_back(pair<int,int>(256, 128));
+  windows.push_back(pair<int,int>(256, 256));
+  windows.push_back(pair<int,int>(128, 512));
+  windows.push_back(pair<int,int>(512, 128));
+  windows.push_back(pair<int,int>(256, 512));
+  windows.push_back(pair<int,int>(512, 256));
+
+  SlidingWindowDetector<NormalizedSum> swd;
+  CenterSurroundMapper csm(1, 3);
 
   for (int i = 0; i < count; i++)
   {
     std::stringstream filepath;
-    //filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
-    filepath << "/home/thermans/data/robot.jpg";
+    filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
+    //filepath << "/home/thermans/data/robot.jpg";
     std::cout << "Image " << i << std::endl;
     Mat frame;
     frame = cv::imread(filepath.str());
     Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
     cvtColor(frame, bw_frame, CV_RGB2GRAY);
 
-    // cv::namedWindow("saliency map");
-    // cv::namedWindow("raw img");
-
     try
     {
-      //swd.scanImage(frame, windows);
-      Mat disp_img = csm(frame);
-      cv::waitKey();
+
+      // Get the saliency map
+      Mat saliency_img = csm(frame);
+      cv::imshow("saliency map scaled", saliency_img);
+      cv::waitKey(6);
+
+      // Find the most salient region
+      swd.scanImage(saliency_img, windows);
+
+      // Report what this region is
+      cv::Rect max_loc = swd.feature_.getMaxLoc();
+
+      std::cout << "max_loc: ("
+                << max_loc.x << ", " << max_loc.y << ", "
+                << max_loc.height << ", " << max_loc.width
+                << ")" << std::endl;
+
+      // Display stuff
+      // Mat disp_img(saliency_img.rows, saliency_img.cols, frame.type());
+      // cv::resize(frame, disp_img, disp_img.size());
+      Mat disp_img(frame.rows, frame.cols, frame.type());
+      frame.copyTo(disp_img);
+      int img_scale = frame.cols / saliency_img.cols;
+      cv::rectangle(disp_img, max_loc.tl()*img_scale, max_loc.br()*img_scale,
+                    CV_RGB(255,0,0));
+
+      swd.feature_.resetMax();
+
+      cv::imshow("Most salient region", disp_img);
+      cv::waitKey(30);
     }
     catch(cv::Exception e)
     {
