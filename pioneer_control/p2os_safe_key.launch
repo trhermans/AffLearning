@@ -1,25 +1,4 @@
 <launch>
-  <machine name="robot" address="p3dx" ros-root="/home/wall/ros/ros" user="wall" ros-package-path="/home/wall/ros/dev:/home/wall/ros/stacks:/home/wall/ros/usc-ros-pkg:/home/wall/ros/brown-ros-pkg">
-  </machine>
-
-  <node name="pioneer" machine="robot" pkg="p2os_driver" type="p2os" output="screen" required="true">
-    <remap from="gripper_control" to="/gripper_cmd"/>
-    <remap from="cmd_vel" to="/safe_cmd_vel"/>
-    <remap from="cmd_motor_state" to="/motor_state_cmd"/>
-    <remap from="ptz_control" to="/ptz_cmd"/>
-
-    <param name="use_sonar" type="bool" value="true"/>
-    <param name="pulse" type="double" value="0.5"/>
-  </node>
-
-  <node name="pioneer_camera" pkg="probe" type="probe" machine="robot">
-    <env name="PROBE_CONFIG" value="v4l2src device=/dev/video0 ! video/x-raw-rgb ! ffmpegcolorspace ! identity name=ros ! fakesink"/>
-    <remap from="/probe/image" to="/p2os/image"/>
-  </node>
-
-  <node name="pioneer_safe_sonar" pkg="pioneer_control" type="p2os_sonar_safety">
-    <remap from="raw_cmd_vel" to="/cmd_vel"/>
-    <remap from="sonar" to="/sonar"/>
-  </node>
+  <include file="$(find pioneer_control)/p2os_safe.launch"/>
   <include file="$(find pioneer_control)/teleop_keyboard.launch"/>
 </launch>
