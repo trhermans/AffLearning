@@ -122,8 +122,6 @@ int main(int argc, char** argv)
       cv::rectangle(disp_img, max_loc.tl()*img_scale, max_loc.br()*img_scale,
                     CV_RGB(255,0,0));
 
-      swd.feature_.resetMax();
-
       cv::imshow("Most salient region", disp_img);
       cv::waitKey(30);
     }
