@@ -52,6 +52,7 @@ int main(int argc, char** argv)
   if (argc > 1)
     count = atoi(argv[1]);
 
+  // TODO: Make these a function of the image size
   vector<pair<int,int> > windows;
   windows.push_back(pair<int,int>(  8,   8));
   windows.push_back(pair<int,int>( 16,   8));
@@ -98,7 +99,7 @@ int main(int argc, char** argv)
     {
 
       // Get the saliency map
-      Mat saliency_img = csm(frame);
+      Mat saliency_img = csm(frame, true);
       cv::imshow("saliency map scaled", saliency_img);
 
       // Find the most salient region
