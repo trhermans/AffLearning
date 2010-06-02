@@ -35,8 +35,8 @@
 #ifndef center_surround_h_DEFINED
 #define center_surround_h_DEFINED
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 
 class CenterSurroundMapper
@@ -51,7 +51,7 @@ class CenterSurroundMapper
   cv::Mat normalize(cv::Mat& map, int max_val);
   cv::Mat getOrientationMap(cv::Mat& img, float theta);
   void generateGaborFilters();
-  
+
  protected:
   int num_scales_;
   int min_c_;
@@ -60,6 +60,7 @@ class CenterSurroundMapper
   int max_delta_;
   int N_;
   int gabor_size_;
+  std::vector<cv::Mat> gabor_filters_;
 };
 
 #endif // center_surround_h_DEFINED
