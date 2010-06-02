@@ -48,9 +48,12 @@ using std::vector;
 int main(int argc, char** argv)
 {
   int count = 1;
-
+  std::string path = "";
   if (argc > 1)
-    count = atoi(argv[1]);
+    path = argv[1];
+
+  if (argc > 2)
+    count = atoi(argv[2]);
 
   // TODO: Make these a function of the image size
   vector<pair<int,int> > windows;
@@ -82,13 +85,20 @@ int main(int argc, char** argv)
   windows.push_back(pair<int,int>(512, 256));
 
   SlidingWindowDetector<NormalizedSum> swd;
-  CenterSurroundMapper csm(1, 3);
+  CenterSurroundMapper csm(0, 2);
 
   for (int i = 0; i < count; i++)
   {
     std::stringstream filepath;
-    filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
-    //filepath << "/home/thermans/data/robot.jpg";
+    if (path != "")
+    {
+      filepath << path << i << ".png";
+    }
+    else
+    {
+      //filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
+      filepath << "/home/thermans/data/robot.jpg";
+    }
     std::cout << "Image " << i << std::endl;
     Mat frame;
     frame = cv::imread(filepath.str());

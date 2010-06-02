@@ -314,9 +314,9 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
                   normalize(C_bar, bar_max)*(1/3.0) +
                   normalize(O_bar, bar_max)*(1/3.0));
 
+  Mat gradient_map(I_bar.rows, I_bar.cols, CV_8UC1);
   if (use_gradient) // TODO: Make nicer functionality for specifying this map
   {
-    Mat gradient_map(I_bar.rows, I_bar.cols, CV_8UC1);
     saliency_map.copyTo(gradient_map);
 
     for (unsigned int i = 0; i < gradient_map.rows; ++i)
@@ -335,9 +335,11 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   // cv::imshow("I bar", I_bar);
   // cv::imshow("C bar", C_bar);
   // cv::imshow("O bar", O_bar);
+  // if (use_gradient)
+  //   cv::imshow("Top Down map", gradient_map);
   // cv::imshow("Saliency", saliency_map);
   // cv::imshow("Scaled", scaled);
-  // cv::waitKey();
+  // cv::waitKey(2);
 
   return scaled;
 }
