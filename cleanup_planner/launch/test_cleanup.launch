@@ -1,6 +1,6 @@
 <launch>
   <!-- <include file="$(find pioneer_control)/p2os_safe_key.launch"/> -->
-  <include file="$(find overhead_tracking)/overhead.launch"/>
+  <include file="$(find overhead_tracking)/launch/overhead.launch"/>
   <node name="cleanup_planner" type="cleanup_planner_node.py" pkg="cleanup_planner"
 	output="screen">
   </node>
