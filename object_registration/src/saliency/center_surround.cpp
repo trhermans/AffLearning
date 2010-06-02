@@ -314,7 +314,7 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
                   normalize(C_bar, bar_max)*(1/3.0) +
                   normalize(O_bar, bar_max)*(1/3.0));
 
-  if (use_gradient) // TODO: Max nicer functionality for specifying this map
+  if (use_gradient) // TODO: Make nicer functionality for specifying this map
   {
     Mat gradient_map(I_bar.rows, I_bar.cols, CV_8UC1);
     saliency_map.copyTo(gradient_map);
