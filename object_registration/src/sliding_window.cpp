@@ -49,20 +49,29 @@ int main(int argc, char** argv)
 {
   int count = 1;
   std::string path = "";
+  bool use_gradient = false;
+  bool flip_rgb = false;
+
   if (argc > 1)
     path = argv[1];
 
   if (argc > 2)
     count = atoi(argv[2]);
 
+  if (argc > 3)
+    use_gradient = (atoi(argv[3]) != 0);
+
+  if (argc > 4)
+    flip_rgb = (atoi(argv[4]) != 0);;
+
   // TODO: Make these a function of the image size
   vector<pair<int,int> > windows;
-  windows.push_back(pair<int,int>(  8,   8));
-  windows.push_back(pair<int,int>( 16,   8));
-  windows.push_back(pair<int,int>(  8,  16));
-  windows.push_back(pair<int,int>( 32,   8));
-  windows.push_back(pair<int,int>(  8,  32));
-  windows.push_back(pair<int,int>( 16,  16));
+  // windows.push_back(pair<int,int>(  8,   8));
+  // windows.push_back(pair<int,int>( 16,   8));
+  // windows.push_back(pair<int,int>(  8,  16));
+  // windows.push_back(pair<int,int>( 32,   8));
+  // windows.push_back(pair<int,int>(  8,  32));
+  // windows.push_back(pair<int,int>( 16,  16));
   windows.push_back(pair<int,int>( 16,  32));
   windows.push_back(pair<int,int>( 32,  16));
   windows.push_back(pair<int,int>( 32,  32));
@@ -90,7 +99,12 @@ int main(int argc, char** argv)
   for (int i = 0; i < count; i++)
   {
     std::stringstream filepath;
-    if (path != "")
+    if (count == 1 && path != "")
+    {
+      filepath << path;
+    }
+
+    else if (path != "")
     {
       filepath << path << i << ".png";
     }
@@ -109,7 +123,7 @@ int main(int argc, char** argv)
     {
 
       // Get the saliency map
-      Mat saliency_img = csm(frame, true);
+      Mat saliency_img = csm(frame, use_gradient);
       cv::imshow("saliency map scaled", saliency_img);
 
       // Find the most salient region
@@ -128,7 +142,15 @@ int main(int argc, char** argv)
       // Mat disp_img(saliency_img.rows, saliency_img.cols, frame.type());
       // cv::resize(frame, disp_img, disp_img.size());
       Mat disp_img(frame.rows, frame.cols, frame.type());
-      frame.copyTo(disp_img);
+
+      if (flip_rgb)
+      {
+        cvtColor(frame, disp_img, CV_RGB2BGR);
+      }
+      else
+      {
+        frame.copyTo(disp_img);
+      }
       int img_scale = frame.cols / saliency_img.cols;
       cv::rectangle(disp_img, max_loc.tl()*img_scale, max_loc.br()*img_scale,
                     CV_RGB(255,0,0));
