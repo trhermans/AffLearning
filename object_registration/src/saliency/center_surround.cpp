@@ -105,7 +105,6 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   vector<Mat> G_scales;
   vector<Mat> B_scales;
   vector<Mat> Y_scales;
-  vector<Mat> L_scales;
   vector<vector<Mat> > O_n_theta; // First index scale, second index relative
                                   // orientation (default 0 - 3)
 
@@ -183,7 +182,6 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   {
     Mat lap;
     cv::Laplacian(I_scales[i], lap, I_scales[i].depth());
-    L_scales.push_back(lap);
     vector<Mat> O_theta;
 
     // Get the N orientation maps for each scale
