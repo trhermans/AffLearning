@@ -49,7 +49,6 @@ class CenterSurroundMapper
   cv::Mat mapDifference(cv::Mat& m_c, cv::Mat& m_s, int c, int s);
   cv::Mat mapSum(std::vector<cv::Mat>& maps);
   cv::Mat normalize(cv::Mat& map, int max_val);
-  cv::Mat getOrientationMap(cv::Mat& img, float theta);
   void generateGaborFilters();
 
  protected:

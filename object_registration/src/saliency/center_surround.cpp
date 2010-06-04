@@ -38,6 +38,8 @@
 #include <iostream>
 #include <sstream>
 
+// #define DISPLAY_SALIENCY_MAPS
+
 using cv::Mat;
 using std::vector;
 
@@ -165,11 +167,7 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
 
   Y = (channels[0]/2.0 + channels[1]/2.0) - Y_abs - channels[2];
 
-
-
   // Get copies of the four feature maps at all scales
-
-  // NOTE: in the paper they do intensity as average of rgb, I'm using grayscale
   cv::buildPyramid(I, I_scales, num_scales_);
   cv::buildPyramid(R, R_scales, num_scales_);
   cv::buildPyramid(G, G_scales, num_scales_);
@@ -189,13 +187,17 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
     vector<Mat> O_theta;
 
     // Get the N orientation maps for each scale
-    for (int i = 0; i < N_; i++)
+    for (int a = 0; a < N_; a++)
     {
-      Mat m_i(lap.rows, lap.cols, lap.type());
-      cv::filter2D(lap, m_i, -1, gabor_filters_[i]);
+      Mat m_a(lap.rows, lap.cols, lap.type());
+      cv::filter2D(lap, m_a, -1, gabor_filters_[a]);
 
       // For each of the N orientation maps smooth and downsample
-      O_theta.push_back(m_i);
+      O_theta.push_back(m_a);
+      // std::stringstream m_name;
+      // m_name << "O_" << i << "_" << a;
+      // cv::imshow(m_name.str(), m_a);
+      // cv::waitKey();
     }
     O_n_theta.push_back(O_theta);
   }
@@ -292,21 +294,17 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   // Combine conspicuity maps into feature maps
   Mat I_bar;
   Mat C_bar;
+  vector<Mat> O_bars;
   I_bar = mapSum(I_cs);
   C_bar = mapSum(C_cs);
 
-  vector<Mat> O_bars;
   // For the orientations we sum each orientation separately, then combined
   // normalized forms of those four
   for (int a = 0; a < N_; ++a)
   {
     Mat O_bar_a = mapSum(O_theta_cs[a]);
     O_bars.push_back(O_bar_a);
-    // std::stringstream img_name;
-    // img_name << "O_bar_" << a;
-    // cv::imshow(img_name.str(), O_bar_a);
   }
-  //cv::waitKey();
 
   //
   // Normalize and sum the O_bars
@@ -376,6 +374,8 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
 
   Mat scaled;
   cv::equalizeHist(saliency_map, scaled);
+
+#ifdef DISPLAY_SALIENCY_MAPS
   cv::imshow("I bar", I_bar);
   cv::imshow("C bar", C_bar);
   cv::imshow("O bar", O_bar);
@@ -384,6 +384,7 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   cv::imshow("Saliency", saliency_map);
   cv::imshow("Scaled", scaled);
   cv::waitKey(2);
+#endif // DISPLAY_SALIENCY_MAPS
 
   return scaled;
 }
@@ -439,12 +440,9 @@ Mat CenterSurroundMapper::mapSum(vector<Mat>& maps)
 
   for (unsigned int i = 0; i < maps.size(); ++i)
   {
-    int num_steps = maps[i].cols / min_cols / 2;
     Mat m_prime = maps[i];
     Mat temp = maps[i];
 
-    // for (int j = 0; j < num_steps; ++j)
-    // {
     while (temp.cols > min_cols)
     {
       cv::pyrDown(temp, m_prime);
@@ -529,9 +527,4 @@ Mat CenterSurroundMapper::normalize(Mat& map, int M)
   fact *= 255/(fact*M);
   normalized *= fact;
   return normalized;
-}
-
-Mat CenterSurroundMapper::getOrientationMap(Mat& img, float theta)
-{
-  return img;
 }

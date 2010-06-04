@@ -85,7 +85,7 @@ int main(int argc, char** argv)
   windows.push_back(pair<int,int>(128, 256));
 
   SlidingWindowDetector<NormalizedSum> swd;
-  CenterSurroundMapper csm(1, 3);
+  CenterSurroundMapper csm(1, 3, 2, 3);
 
   for (int i = 0; i < count; i++)
   {
