@@ -66,12 +66,9 @@ int main(int argc, char** argv)
 
   // TODO: Make these a function of the image size
   vector<pair<int,int> > windows;
-  // windows.push_back(pair<int,int>(  8,   8));
-  // windows.push_back(pair<int,int>( 16,   8));
-  // windows.push_back(pair<int,int>(  8,  16));
-  // windows.push_back(pair<int,int>( 32,   8));
-  // windows.push_back(pair<int,int>(  8,  32));
-  // windows.push_back(pair<int,int>( 16,  16));
+  // windows.push_back(pair<int,int>( 4,  4));
+  // windows.push_back(pair<int,int>( 8,  8));
+  windows.push_back(pair<int,int>( 16,  16));
   windows.push_back(pair<int,int>( 16,  32));
   windows.push_back(pair<int,int>( 32,  16));
   windows.push_back(pair<int,int>( 32,  32));
@@ -86,15 +83,9 @@ int main(int argc, char** argv)
   windows.push_back(pair<int,int>(256,  64));
   windows.push_back(pair<int,int>(128, 128));
   windows.push_back(pair<int,int>(128, 256));
-  windows.push_back(pair<int,int>(256, 128));
-  windows.push_back(pair<int,int>(256, 256));
-  windows.push_back(pair<int,int>(128, 512));
-  windows.push_back(pair<int,int>(512, 128));
-  windows.push_back(pair<int,int>(256, 512));
-  windows.push_back(pair<int,int>(512, 256));
 
   SlidingWindowDetector<NormalizedSum> swd;
-  CenterSurroundMapper csm(0, 2);
+  CenterSurroundMapper csm(1, 3);
 
   for (int i = 0; i < count; i++)
   {
@@ -116,15 +107,22 @@ int main(int argc, char** argv)
     std::cout << "Image " << i << std::endl;
     Mat frame;
     frame = cv::imread(filepath.str());
-    Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
-    cvtColor(frame, bw_frame, CV_RGB2GRAY);
-
+    if (flip_rgb)
+    {
+      Mat op_frame(frame.rows, frame.cols, frame.type());
+      cvtColor(frame, op_frame, CV_RGB2BGR);
+      op_frame.copyTo(frame);
+    }
     try
     {
 
       // Get the saliency map
       Mat saliency_img = csm(frame, use_gradient);
       cv::imshow("saliency map scaled", saliency_img);
+
+      // Mat saliency_large(frame.rows, frame.cols, saliency_img.type());
+      // cv::resize(saliency_img, saliency_large, saliency_large.size());
+      // cv::imshow("saliency map large", saliency_large);
 
       // Find the most salient region
       swd.feature_.resetMax();
@@ -142,15 +140,8 @@ int main(int argc, char** argv)
       // Mat disp_img(saliency_img.rows, saliency_img.cols, frame.type());
       // cv::resize(frame, disp_img, disp_img.size());
       Mat disp_img(frame.rows, frame.cols, frame.type());
+      frame.copyTo(disp_img);
 
-      if (flip_rgb)
-      {
-        cvtColor(frame, disp_img, CV_RGB2BGR);
-      }
-      else
-      {
-        frame.copyTo(disp_img);
-      }
       int img_scale = frame.cols / saliency_img.cols;
       cv::rectangle(disp_img, max_loc.tl()*img_scale, max_loc.br()*img_scale,
                     CV_RGB(255,0,0));

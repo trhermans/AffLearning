@@ -77,9 +77,9 @@ void CenterSurroundMapper::generateGaborFilters()
     Mat to_exp(gabor_size_, gabor_size_, CV_64FC1);
     to_exp = (x_theta.mul(x_theta) + y_theta.mul(y_theta))*-0.5;
 
-    for(unsigned int i = 0; i < gabor_size_; i++)
+    for(int i = 0; i < gabor_size_; i++)
     {
-      for(unsigned int j = 0; j < gabor_size_; j++)
+      for(int j = 0; j < gabor_size_; j++)
       {
         gabor_alpha.at<double>(i,j) *= exp(to_exp.at<double>(i,j))*
             cos(x_theta.at<double>(i,j)*M_PI*2);
@@ -93,13 +93,11 @@ void CenterSurroundMapper::generateGaborFilters()
 Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
 {
   Mat I(frame.rows, frame.cols, CV_8UC1);
-
-  cvtColor(frame, I, CV_RGB2GRAY);
-
   Mat R(frame.rows, frame.cols, CV_8UC1);
   Mat G(frame.rows, frame.cols, CV_8UC1);
   Mat B(frame.rows, frame.cols, CV_8UC1);
   Mat Y(frame.rows, frame.cols, CV_8UC1);
+
   vector<Mat> I_scales;
   vector<Mat> R_scales;
   vector<Mat> G_scales;
@@ -113,13 +111,61 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   vector<Mat> channels;
   split(frame, channels);
 
+  // Get hue indepenednt intensity channel
+  I = channels[0]/3.0 + channels[1]/3.0 + channels[2]/3.0;
+
+  // int max_i = 0;
+  // for(int r = 0; r < I.rows; ++r)
+  // {
+  //   for(int c = 0; c < I.cols; ++c)
+  //   {
+  //     if (I.at<uchar>(r,c) > max_i)
+  //       max_i = I.at<uchar>(r,c);
+  //   }
+  // }
+
+  // for(int r = 0; r < I.rows; ++r)
+  // {
+  //   for(int c = 0; c < I.cols; ++c)
+  //   {
+  //     if (I.at<uchar>(r,c) > max_i*0.10)
+  //     {
+  //       channels[0].at<uchar>(r,c) = (channels[0].at<uchar>(r,c) /
+  //                                     I.at<uchar>(r,c));
+  //       channels[1].at<uchar>(r,c) = (channels[1].at<uchar>(r,c) /
+  //                                     I.at<uchar>(r,c));
+  //       channels[2].at<uchar>(r,c) = (channels[2].at<uchar>(r,c) /
+  //                                     I.at<uchar>(r,c));
+  //     }
+  //     else
+  //     {
+  //       // Normalize r, g, and b at locations greater than 1/10 the image
+  //       channels[0].at<uchar>(r,c) = 0;
+  //       channels[1].at<uchar>(r,c) = 0;
+  //       channels[2].at<uchar>(r,c) = 0;
+  //     }
+  //   }
+  // }
+
+
   // Get intensity independent hue channels
   R = channels[0] - (channels[1]/2.0 + channels[2]/2.0);
   G = channels[1] - (channels[0]/2.0 + channels[2]/2.0);
   B = channels[2] - (channels[0]/2.0 + channels[1]/2.0);
-  Y = ((channels[0]/2.0 + channels[1]/2.0) -
-       (channels[0]/2.0 - channels[1]/2.0)
-       - channels[2]);
+
+  Mat Y_abs(Y.rows, Y.cols, Y.type());
+  for(int r = 0; r < Y.rows; ++r)
+  {
+    for(int c = 0; c < Y.cols; ++c)
+    {
+      Y_abs.at<uchar>(r,c) = std::abs(channels[0].at<uchar>(r,c)/2.0 -
+                                      channels[1].at<uchar>(r,c)/2.0);
+    }
+  }
+
+  Y = (channels[0]/2.0 + channels[1]/2.0) - Y_abs - channels[2];
+
+
 
   // Get copies of the four feature maps at all scales
 
@@ -306,8 +352,6 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
     }
   }
 
-  std::cout << "bar max is: " << bar_max << std::endl;
-
   // Build the saliency map as the combination of the feature maps
   Mat saliency_map(I_bar.rows, I_bar.cols, CV_8UC1);
   saliency_map = (normalize(I_bar, bar_max)*(1/3.0) +
@@ -319,27 +363,27 @@ Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
   {
     saliency_map.copyTo(gradient_map);
 
-    for (unsigned int i = 0; i < gradient_map.rows; ++i)
+    for (int i = 0; i < gradient_map.rows; ++i)
     {
-      for (unsigned int j = 0; j < gradient_map.cols; ++j)
+      for (int j = 0; j < gradient_map.cols; ++j)
       {
         gradient_map.at<uchar>(i,j) = 255*i/gradient_map.rows;
       }
     }
 
-    saliency_map = saliency_map*0.5 + gradient_map*0.5;
+    saliency_map = saliency_map*0.75 + gradient_map*0.25;
   }
 
   Mat scaled;
   cv::equalizeHist(saliency_map, scaled);
-  // cv::imshow("I bar", I_bar);
-  // cv::imshow("C bar", C_bar);
-  // cv::imshow("O bar", O_bar);
-  // if (use_gradient)
-  //   cv::imshow("Top Down map", gradient_map);
-  // cv::imshow("Saliency", saliency_map);
-  // cv::imshow("Scaled", scaled);
-  // cv::waitKey(2);
+  cv::imshow("I bar", I_bar);
+  cv::imshow("C bar", C_bar);
+  cv::imshow("O bar", O_bar);
+  if (use_gradient)
+    cv::imshow("Top Down map", gradient_map);
+  cv::imshow("Saliency", saliency_map);
+  cv::imshow("Scaled", scaled);
+  cv::waitKey(2);
 
   return scaled;
 }
@@ -399,12 +443,13 @@ Mat CenterSurroundMapper::mapSum(vector<Mat>& maps)
     Mat m_prime = maps[i];
     Mat temp = maps[i];
 
-    for (int j = 0; j < num_steps; ++j)
+    // for (int j = 0; j < num_steps; ++j)
+    // {
+    while (temp.cols > min_cols)
     {
       cv::pyrDown(temp, m_prime);
       temp = m_prime;
     }
-
     sum += m_prime;
   }
 
@@ -465,7 +510,6 @@ Mat CenterSurroundMapper::normalize(Mat& map, int M)
       }
     }
   }
-  //std::cout << "Found " << maxima.size() << " local maxima." << std::endl;
 
   // Get mean of the local maxima
   float m_bar = 0;
