@@ -32,34 +32,56 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef center_surround_h_DEFINED
-#define center_surround_h_DEFINED
+#ifndef normalized_sum_h_DEFINED
+#define normalized_sum_h_DEFINED
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <vector>
 
-class CenterSurroundMapper
+class NormalizedSum
 {
  public:
-  CenterSurroundMapper(int min_c=2, int max_c=4, int min_delta = 3,
-                       int max_delta = 4);
+  NormalizedSum() :
+      max_sum(-1.0), max_loc(0, 0, 0, 0)
+  {
+  }
 
-  cv::Mat operator()(cv::Mat& frame, bool use_gradient=false);
-  cv::Mat mapDifference(cv::Mat& m_c, cv::Mat& m_s, int c, int s);
-  cv::Mat mapSum(std::vector<cv::Mat>& maps);
-  cv::Mat normalize(cv::Mat& map, int max_val);
-  void generateGaborFilters();
+  float operator()(cv::Mat& img, cv::Rect& window)
+  {
+    float area_sum = 0.0;
+    for (int i = 0; i < img.rows; ++i)
+    {
+      for (int j = 0; j < img.cols; ++j)
+      {
+        area_sum += img.at<uchar>(i,j);
+      }
+    }
 
+    area_sum /= (img.cols*img.rows);
+
+    if (area_sum > max_sum)
+    {
+      max_sum = area_sum;
+      max_loc.x = window.x;
+      max_loc.y = window.y;
+      max_loc.height = window.height;
+      max_loc.width = window.width;
+    }
+
+    return area_sum;
+  }
+
+  float getMax() const { return max_sum; }
+  cv::Rect getMaxLoc() const { return max_loc; }
+  void resetMax()
+  {
+    max_sum = -1.0;
+    max_loc.x = 0.0;
+    max_loc.y = 0.0;
+    max_loc.height = 0.0;
+    max_loc.width = 0.0;
+  }
  protected:
-  int num_scales_;
-  int min_c_;
-  int max_c_;
-  int min_delta_;
-  int max_delta_;
-  int N_;
-  int gabor_size_;
-  std::vector<cv::Mat> gabor_filters_;
+  float max_sum;
+  cv::Rect max_loc;
 };
-
-#endif // center_surround_h_DEFINED
+#endif // normalized_sum_h_DEFINED

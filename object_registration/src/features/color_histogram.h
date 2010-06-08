@@ -35,8 +35,8 @@
 #ifndef color_histogram_h_DEFINED
 #define color_histogram_h_DEFINED
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 template<int n_bins> class ColorHistogram
 {
@@ -45,7 +45,7 @@ template<int n_bins> class ColorHistogram
   {
   }
 
-  void operator()(cv::Mat patch)
+  void operator()(cv::Mat patch, cv::Rect window)
   {
     int bins[] = {n_bins, n_bins, n_bins};
     int channels[] = {0,1,2};

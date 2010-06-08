@@ -33,51 +33,138 @@
  *********************************************************************/
 
 #include "center_surround.h"
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <sstream>
+
+// #define DISPLAY_SALIENCY_MAPS
 
 using cv::Mat;
 using std::vector;
 
 CenterSurroundMapper::CenterSurroundMapper(int min_c, int max_c, int min_delta,
                                            int max_delta) :
-    min_c_(min_c), max_c_(max_c), min_delta_(min_delta), max_delta_(max_delta)
+    min_c_(min_c), max_c_(max_c), min_delta_(min_delta), max_delta_(max_delta),
+    N_(4), gabor_size_(7)
 {
   num_scales_ = max_c_ + max_delta_;
+  generateGaborFilters();
 }
 
-Mat CenterSurroundMapper::operator()(Mat& frame)
+void CenterSurroundMapper::generateGaborFilters()
+{
+  Mat base_x(gabor_size_, gabor_size_, CV_64FC1);
+  Mat base_y(gabor_size_, gabor_size_, CV_64FC1);
+
+  // Populate the base x and y matrices
+  for (int i = 0; i < base_x.cols; ++i)
+  {
+    for (int j = 0; j < base_x.rows; ++j)
+    {
+      base_x.at<double>(i,j) = i - gabor_size_/2;
+      base_y.at<double>(i,j) = j - gabor_size_/2;
+    }
+  }
+
+  for (int alpha = 0; alpha < N_; ++alpha)
+  {
+    float theta = M_PI / N_*alpha;
+    Mat x_theta = base_x *  cos(theta) + base_y * sin(theta);
+    Mat y_theta = base_x * -sin(theta) + base_y * cos(theta);
+
+    Mat gabor_alpha(gabor_size_, gabor_size_, CV_64FC1, 1.0);
+    gabor_alpha *= 1/(2*M_PI);
+
+    Mat to_exp(gabor_size_, gabor_size_, CV_64FC1);
+    to_exp = (x_theta.mul(x_theta) + y_theta.mul(y_theta))*-0.5;
+
+    for(int i = 0; i < gabor_size_; i++)
+    {
+      for(int j = 0; j < gabor_size_; j++)
+      {
+        gabor_alpha.at<double>(i,j) *= exp(to_exp.at<double>(i,j))*
+            cos(x_theta.at<double>(i,j)*M_PI*2);
+      }
+    }
+
+    gabor_filters_.push_back(gabor_alpha);
+  }
+}
+
+Mat CenterSurroundMapper::operator()(Mat& frame, bool use_gradient)
 {
   Mat I(frame.rows, frame.cols, CV_8UC1);
-
-  cvtColor(frame, I, CV_RGB2GRAY);
-
   Mat R(frame.rows, frame.cols, CV_8UC1);
   Mat G(frame.rows, frame.cols, CV_8UC1);
   Mat B(frame.rows, frame.cols, CV_8UC1);
   Mat Y(frame.rows, frame.cols, CV_8UC1);
+
   vector<Mat> I_scales;
   vector<Mat> R_scales;
   vector<Mat> G_scales;
   vector<Mat> B_scales;
   vector<Mat> Y_scales;
-  vector<Mat> L_scales;
-  vector<vector<Mat> > O_sigma_n; // First index scale, second index relative
+  vector<vector<Mat> > O_n_theta; // First index scale, second index relative
                                   // orientation (default 0 - 3)
 
   // Get the component color channels
   vector<Mat> channels;
   split(frame, channels);
 
+  // Get hue indepenednt intensity channel
+  I = channels[0]/3.0 + channels[1]/3.0 + channels[2]/3.0;
+
+  // int max_i = 0;
+  // for(int r = 0; r < I.rows; ++r)
+  // {
+  //   for(int c = 0; c < I.cols; ++c)
+  //   {
+  //     if (I.at<uchar>(r,c) > max_i)
+  //       max_i = I.at<uchar>(r,c);
+  //   }
+  // }
+
+  // for(int r = 0; r < I.rows; ++r)
+  // {
+  //   for(int c = 0; c < I.cols; ++c)
+  //   {
+  //     if (I.at<uchar>(r,c) > max_i*0.10)
+  //     {
+  //       channels[0].at<uchar>(r,c) = (channels[0].at<uchar>(r,c) /
+  //                                     I.at<uchar>(r,c));
+  //       channels[1].at<uchar>(r,c) = (channels[1].at<uchar>(r,c) /
+  //                                     I.at<uchar>(r,c));
+  //       channels[2].at<uchar>(r,c) = (channels[2].at<uchar>(r,c) /
+  //                                     I.at<uchar>(r,c));
+  //     }
+  //     else
+  //     {
+  //       // Normalize r, g, and b at locations greater than 1/10 the image
+  //       channels[0].at<uchar>(r,c) = 0;
+  //       channels[1].at<uchar>(r,c) = 0;
+  //       channels[2].at<uchar>(r,c) = 0;
+  //     }
+  //   }
+  // }
+
+
   // Get intensity independent hue channels
   R = channels[0] - (channels[1]/2.0 + channels[2]/2.0);
   G = channels[1] - (channels[0]/2.0 + channels[2]/2.0);
   B = channels[2] - (channels[0]/2.0 + channels[1]/2.0);
-  Y = ((channels[0]/2.0 + channels[1]/2.0) -
-       (channels[0]/2.0 - channels[1]/2.0)
-       - channels[2]);
+
+  Mat Y_abs(Y.rows, Y.cols, Y.type());
+  for(int r = 0; r < Y.rows; ++r)
+  {
+    for(int c = 0; c < Y.cols; ++c)
+    {
+      Y_abs.at<uchar>(r,c) = std::abs(channels[0].at<uchar>(r,c)/2.0 -
+                                      channels[1].at<uchar>(r,c)/2.0);
+    }
+  }
+
+  Y = (channels[0]/2.0 + channels[1]/2.0) - Y_abs - channels[2];
 
   // Get copies of the four feature maps at all scales
   cv::buildPyramid(I, I_scales, num_scales_);
@@ -86,13 +173,53 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   cv::buildPyramid(B, B_scales, num_scales_);
   cv::buildPyramid(Y, Y_scales, num_scales_);
 
+  //
+  // Build Gabor orientation Pyramid
+  //
+
+  // Get laplacians at all scales (TODO: do this while building pyr via DoG)
+  for(unsigned int i = 0; i < I_scales.size(); ++i)
+  {
+    Mat lap;
+    cv::Laplacian(I_scales[i], lap, I_scales[i].depth());
+    vector<Mat> O_theta;
+
+    // Get the N orientation maps for each scale
+    for (int a = 0; a < N_; a++)
+    {
+      Mat m_a(lap.rows, lap.cols, lap.type());
+      cv::filter2D(lap, m_a, -1, gabor_filters_[a]);
+
+      // For each of the N orientation maps smooth and downsample
+      O_theta.push_back(m_a);
+      // std::stringstream m_name;
+      // m_name << "O_" << i << "_" << a;
+      // cv::imshow(m_name.str(), m_a);
+      // cv::waitKey();
+    }
+    O_n_theta.push_back(O_theta);
+  }
+
+  //
   // Get multi-scale maps of the features
+  //
+
   vector<Mat> I_cs;
   vector<Mat> RG_cs;
   vector<Mat> BY_cs;
   vector<Mat> C_cs;
-  vector<Mat> O_cs;
+  vector<vector<Mat> > O_theta_cs;
 
+
+  // Initialize the vectors for the different orientations
+  for (int a = 0; a < N_; ++a)
+  {
+    vector<Mat> O_cs;
+    O_cs.clear();
+    O_theta_cs.push_back(O_cs);
+  }
+
+  // Here we build the multi-scale maps
   for (int c = min_c_; c <= max_c_; c++)
   {
     for (int s = c + min_delta_; s <= c + max_delta_; s++)
@@ -109,22 +236,14 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
       Mat BY_c = B_scales[c] - Y_scales[c];
       Mat YB_s = Y_scales[s] - B_scales[s];
       BY_cs.push_back(mapDifference(BY_c, YB_s, c, s));
+
+      // Build orientation maps for each of the N_ orientations
+      for (int a = 0; a < N_; ++a)
+      {
+        O_theta_cs[a].push_back(mapDifference(O_n_theta[c][a],
+                                              O_n_theta[s][a], c, s));
+      }
     }
-  }
-
-  //
-  // Build Gabor orientation Pyramid
-  //
-
-  // Get laplacians at all scales (TODO: this can be done while building pyr)
-  for(unsigned int i = 0; i < I_scales.size(); ++i)
-  {
-    Mat lap;
-    cv::Laplacian(I_scales[i], lap, I_scales[i].depth());
-    L_scales.push_back(lap);
-
-    // Get the N orientation maps for each scale
-    
   }
 
   //
@@ -134,6 +253,8 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
   // Find max values to normalize maps by feature type
   int I_max = 0;
   int C_max = 0;
+  vector<int> O_theta_max(N_, 0);
+
   for (unsigned int i = 0; i < I_cs.size(); ++i)
   {
     for(int r = 0; r < I_cs[i].rows; ++r)
@@ -147,6 +268,11 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
         if (BY_cs[i].at<uchar>(r,c) > C_max)
           C_max = BY_cs[i].at<uchar>(r,c);
 
+        for (int a = 0; a < N_; ++a)
+        {
+          if (O_theta_cs[a][i].at<uchar>(r,c) > O_theta_max[a])
+            O_theta_max[a] = O_theta_cs[a][i].at<uchar>(r,c);
+        }
       }
     }
   }
@@ -157,15 +283,57 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
     // Test for max value for normalization
     I_cs[i] = normalize(I_cs[i], I_max);
     C_cs.push_back(normalize(RG_cs[i], C_max) + normalize(BY_cs[i], C_max));
+    for (int a = 0; a < N_; ++a)
+    {
+      O_theta_cs[a][i] = normalize(O_theta_cs[a][i], O_theta_max[a]);
+    }
   }
 
   // Combine conspicuity maps into feature maps
   Mat I_bar;
   Mat C_bar;
-  Mat O_bar;
+  vector<Mat> O_bars;
   I_bar = mapSum(I_cs);
   C_bar = mapSum(C_cs);
 
+  // For the orientations we sum each orientation separately, then combined
+  // normalized forms of those four
+  for (int a = 0; a < N_; ++a)
+  {
+    Mat O_bar_a = mapSum(O_theta_cs[a]);
+    O_bars.push_back(O_bar_a);
+  }
+
+  //
+  // Normalize and sum the O_bars
+  //
+
+  Mat O_bar(I_bar.rows, I_bar.cols, I_bar.type(), 0);
+  int O_max = 0;
+
+  // Get the max of the o_bars
+  for (int a = 0; a < N_; ++a)
+  {
+    for(int r = 0; r < O_bars[a].rows; ++r)
+    {
+      for(int c = 0; c < O_bars[a].cols; ++c)
+      {
+        if (O_bars[a].at<uchar>(r,c) > C_max)
+          O_max = O_bars[a].at<uchar>(r,c);
+      }
+    }
+  }
+
+  for (int a = 0; a < N_; ++a)
+  {
+    O_bar += normalize(O_bars[a], O_max)*(1/float(N_));
+  }
+
+  //
+  // Normalize and sum the different feature channels
+  //
+
+  // Get the max of the different feature channel conspicuicy maps
   int bar_max = 0;
   for (int r = 0; r < I_bar.rows; ++r)
   {
@@ -175,25 +343,48 @@ Mat CenterSurroundMapper::operator()(Mat& frame)
         bar_max = I_bar.at<uchar>(r,c);
       if (C_bar.at<uchar>(r,c) > bar_max)
         bar_max = C_bar.at<uchar>(r,c);
+      if (O_bar.at<uchar>(r,c) > bar_max)
+        bar_max = O_bar.at<uchar>(r,c);
     }
   }
 
-  std::cout << "bar max is: " << bar_max << std::endl;
   // Build the saliency map as the combination of the feature maps
   Mat saliency_map(I_bar.rows, I_bar.cols, CV_8UC1);
-  saliency_map = normalize(I_bar, bar_max) + normalize(C_bar, bar_max);
-  saliency_map /= 2;
+  saliency_map = (normalize(I_bar, bar_max)*(1/3.0) +
+                  normalize(C_bar, bar_max)*(1/3.0) +
+                  normalize(O_bar, bar_max)*(1/3.0));
+
+  Mat gradient_map(I_bar.rows, I_bar.cols, CV_8UC1);
+  if (use_gradient) // TODO: Make nicer functionality for specifying this map
+  {
+    saliency_map.copyTo(gradient_map);
+
+    for (int i = 0; i < gradient_map.rows; ++i)
+    {
+      for (int j = 0; j < gradient_map.cols; ++j)
+      {
+        gradient_map.at<uchar>(i,j) = 255*i/gradient_map.rows;
+      }
+    }
+
+    saliency_map = saliency_map*0.75 + gradient_map*0.25;
+  }
 
   Mat scaled;
   cv::equalizeHist(saliency_map, scaled);
+
+#ifdef DISPLAY_SALIENCY_MAPS
   cv::imshow("I bar", I_bar);
   cv::imshow("C bar", C_bar);
+  cv::imshow("O bar", O_bar);
+  if (use_gradient)
+    cv::imshow("Top Down map", gradient_map);
   cv::imshow("Saliency", saliency_map);
   cv::imshow("Scaled", scaled);
-  cv::waitKey();
+  cv::waitKey(2);
+#endif // DISPLAY_SALIENCY_MAPS
 
-
-  return saliency_map;
+  return scaled;
 }
 
 Mat CenterSurroundMapper::mapDifference(Mat& m_c, Mat& m_s, int c, int s)
@@ -247,16 +438,14 @@ Mat CenterSurroundMapper::mapSum(vector<Mat>& maps)
 
   for (unsigned int i = 0; i < maps.size(); ++i)
   {
-    int num_steps = maps[i].cols / min_cols / 2;
     Mat m_prime = maps[i];
     Mat temp = maps[i];
 
-    for (int j = 0; j < num_steps; ++j)
+    while (temp.cols > min_cols)
     {
       cv::pyrDown(temp, m_prime);
       temp = m_prime;
     }
-
     sum += m_prime;
   }
 
@@ -317,7 +506,6 @@ Mat CenterSurroundMapper::normalize(Mat& map, int M)
       }
     }
   }
-  std::cout << "Found " << maxima.size() << " local maxima." << std::endl;
 
   // Get mean of the local maxima
   float m_bar = 0;
@@ -337,9 +525,4 @@ Mat CenterSurroundMapper::normalize(Mat& map, int M)
   fact *= 255/(fact*M);
   normalized *= fact;
   return normalized;
-}
-
-Mat CenterSurroundMapper::getOrientationMap(Mat& img, float theta)
-{
-  return img;
 }

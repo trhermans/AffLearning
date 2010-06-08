@@ -33,12 +33,12 @@
  *********************************************************************/
 
 #include "sliding_window.h"
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 #include <sstream>
 #include <iostream>
 
-#include "features/color_histogram.h"
 #include "saliency/center_surround.h"
+#include "features/normalized_sum.h"
 
 using cv::Mat;
 using cv::Rect;
@@ -48,37 +48,109 @@ using std::vector;
 int main(int argc, char** argv)
 {
   int count = 1;
+  std::string path = "";
+  bool use_gradient = false;
+  bool flip_rgb = false;
+
   if (argc > 1)
-    count = atoi(argv[1]);
+    path = argv[1];
 
-  SlidingWindowDetector<ColorHistogram<12> > swd;
-  CenterSurroundMapper csm;
+  if (argc > 2)
+    count = atoi(argv[2]);
 
+  if (argc > 3)
+    use_gradient = (atoi(argv[3]) != 0);
+
+  if (argc > 4)
+    flip_rgb = (atoi(argv[4]) != 0);;
+
+  // TODO: Make these a function of the image size
   vector<pair<int,int> > windows;
-  //windows.push_back(pair<int,int>( 64,  64));
+  // windows.push_back(pair<int,int>( 4,  4));
+  // windows.push_back(pair<int,int>( 8,  8));
+  windows.push_back(pair<int,int>( 16,  16));
+  windows.push_back(pair<int,int>( 16,  32));
+  windows.push_back(pair<int,int>( 32,  16));
+  windows.push_back(pair<int,int>( 32,  32));
+  windows.push_back(pair<int,int>( 64,  32));
+  windows.push_back(pair<int,int>( 32,  64));
+  windows.push_back(pair<int,int>( 64,  64));
+  windows.push_back(pair<int,int>( 32, 128));
+  windows.push_back(pair<int,int>(128,  32));
   windows.push_back(pair<int,int>( 64, 128));
-  // windows.push_back(pair<int,int>(128,  64));
-  // windows.push_back(pair<int,int>(128, 128));
+  windows.push_back(pair<int,int>(128,  64));
+  windows.push_back(pair<int,int>( 64, 256));
+  windows.push_back(pair<int,int>(256,  64));
+  windows.push_back(pair<int,int>(128, 128));
+  windows.push_back(pair<int,int>(128, 256));
+
+  SlidingWindowDetector<NormalizedSum> swd;
+  CenterSurroundMapper csm(1, 3, 2, 3);
 
   for (int i = 0; i < count; i++)
   {
     std::stringstream filepath;
-    //filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
-    filepath << "/home/tucker/data/robot.jpg";
+    if (count == 1 && path != "")
+    {
+      filepath << path;
+    }
+
+    else if (path != "")
+    {
+      filepath << path << i << ".png";
+    }
+    else
+    {
+      //filepath << "/home/thermans/data/robot-frames/test1/" << i << ".png";
+      filepath << "/home/thermans/data/robot.jpg";
+    }
     std::cout << "Image " << i << std::endl;
     Mat frame;
     frame = cv::imread(filepath.str());
-    Mat bw_frame(frame.rows, frame.cols, CV_8UC1);
-    cvtColor(frame, bw_frame, CV_RGB2GRAY);
-
-    // cv::namedWindow("saliency map");
-    // cv::namedWindow("raw img");
-
+    if (flip_rgb)
+    {
+      Mat op_frame(frame.rows, frame.cols, frame.type());
+      cvtColor(frame, op_frame, CV_RGB2BGR);
+      op_frame.copyTo(frame);
+    }
     try
     {
-      //swd.scanImage(frame, windows);
-      Mat disp_img = csm(frame);
-      cv::waitKey();
+
+      // Get the saliency map
+      Mat saliency_img = csm(frame, use_gradient);
+      cv::imshow("saliency map scaled", saliency_img);
+
+      // Mat saliency_large(frame.rows, frame.cols, saliency_img.type());
+      // cv::resize(saliency_img, saliency_large, saliency_large.size());
+      // cv::imshow("saliency map large", saliency_large);
+
+      // Find the most salient region
+      swd.feature_.resetMax();
+      swd.scanImage(saliency_img, windows);
+
+      // Report what this region is
+      cv::Rect max_loc = swd.feature_.getMaxLoc();
+
+      std::cout << "max_loc: ("
+                << max_loc.x << ", " << max_loc.y << ", "
+                << max_loc.height << ", " << max_loc.width
+                << ")" << std::endl;
+
+      // Display stuff
+      // Mat disp_img(saliency_img.rows, saliency_img.cols, frame.type());
+      // cv::resize(frame, disp_img, disp_img.size());
+      Mat disp_img(frame.rows, frame.cols, frame.type());
+      frame.copyTo(disp_img);
+
+      int img_scale = frame.cols / saliency_img.cols;
+      cv::rectangle(disp_img, max_loc.tl()*img_scale, max_loc.br()*img_scale,
+                    CV_RGB(255,0,0));
+
+      cv::imshow("Most salient region", disp_img);
+      if (i == count - 1)
+        cv::waitKey();
+      else
+        cv::waitKey(30);
     }
     catch(cv::Exception e)
     {

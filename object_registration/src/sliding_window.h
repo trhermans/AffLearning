@@ -35,10 +35,10 @@
 #ifndef sliding_window_h_DEFINED
 #define sliding_window_h_DEFINED
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
+#include <opencv2/core/core.hpp>
 #include <vector>
 #include <utility>
+#include <iostream>
 
 template<class FeatureType> class SlidingWindowDetector
 {
@@ -81,6 +81,19 @@ template<class FeatureType> class SlidingWindowDetector
   }
 
   /**
+   * Wrapper function to use a pair instead of indepnednt height and width
+   *
+   * @param img The image to perform the scanning over
+   * @param window_size A pair contianing the height and width
+   */
+  void scanImage(cv::Mat& img, std::pair<int,int> window_size)
+  {
+    std::cout << "Window has dimensions: (" << window_size.first << ", "
+              << window_size.second << ")" << std::endl;
+    scanImage(img, window_size.first, window_size.second);
+  }
+
+  /**
    * Workhorse function of the class that extracts the specified windows across
    * the image and sends them to the callback task
    *
@@ -97,7 +110,7 @@ template<class FeatureType> class SlidingWindowDetector
       {
         cv::Rect roi(c, r, window_width, window_height);
         cv::Mat window = img(roi);
-        feature_(window);
+        feature_(window, roi);
       }
     }
   }
