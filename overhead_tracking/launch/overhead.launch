@@ -1,0 +1,18 @@
+<launch>
+
+  <group ns="prosilica">
+    <include file="$(find overhead_tracking)/config/cam_settings.xml"/>
+    <param name="trigger_mode" type="str" value="streaming"/>
+  </group>
+
+  <node name="prosilica" pkg="prosilica_camera" type="prosilica_node" respawn="false" output="screen">
+    <remap from="camera/image_raw" to="overhead_camera/image_raw"/>
+    <remap from="camera/camera_info" to="overhead_camera/camera_info"/>
+  </node>
+  <node ns="overhead_camera" name="image_proc" pkg="image_proc" type="image_proc"/>
+
+  <node name="overhead_tracking" pkg="overhead_tracking" type="overhead_tracking_node" output="screen" required="true">
+    <remap from="image_topic" to="/overhead_camera/image_color"/>
+  </node>
+
+</launch>

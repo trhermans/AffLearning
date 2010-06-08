@@ -1,0 +1,23 @@
+<package>
+  <description brief="overhead_tracking">
+
+     overhead_tracking
+
+  </description>
+  <author>Tucker Hermans</author>
+  <license>BSD</license>
+  <depend package="roscpp"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+  <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="image_transport"/>
+  <depend package="image_proc"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/msg/cpp"/>
+  </export>
+
+</package>
+
+

@@ -1,0 +1,15 @@
+<package>
+  <description brief="pioneer_control">
+
+     pioneer_control
+
+  </description>
+  <author>wall</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pioneer_control</url>
+  <depend package="rospy"/>
+  <depend package="p2os_driver"/>
+  <depend package="geometry_msgs"/>
+
+</package>

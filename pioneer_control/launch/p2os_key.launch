@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find pioneer_control)/launch/p2os.launch"/>
+  <include file="$(find pioneer_control)/launch/teleop_keyboard.launch"/>
+</launch>

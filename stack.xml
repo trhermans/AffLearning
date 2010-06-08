@@ -1,0 +1,9 @@
+<stack>
+  <description brief="aff-learning">aff-learning</description>
+  <author>Maintained by Tucker Hermans</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://cc.gatech.edu/~thermans</url>
+  <depend stack="ros" />
+
+</stack>

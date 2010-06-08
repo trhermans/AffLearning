@@ -1,0 +1,23 @@
+<launch>
+
+  <machine name="robot" address="p3dx" ros-root="/home/wall/ros/ros" user="wall" ros-package-path="/home/wall/ros-dev/usc-ros-pkg:/home/wall/ros-dev/brown-ros-pkg:/home/wall/ros-dev/aff-learning:/home/wall/ros-latest/stacks">
+  </machine>
+
+  <node name="pioneer" machine="robot" pkg="p2os_driver" type="p2os" output="screen" required="true">
+    <remap from="gripper_control" to="/gripper_cmd"/>
+    <remap from="cmd_vel" to="/cmd_vel"/>
+    <remap from="cmd_motor_state" to="/motor_state_cmd"/>
+    <remap from="ptz_control" to="/ptz_cmd"/>
+
+    <param name="use_sonar" type="bool" value="false"/>
+    <param name="pulse" type="double" value="0.5"/>
+  </node>
+
+  <node name="ptz_camera" pkg="gscam" type="gscam" machine="robot">
+    <env name="GSCAM_CONFIG" value="v4l2src device=/dev/video0 ! video/x-raw-rgb ! ffmpegcolorspace ! identity name=ros ! fakesink"/>
+    <remap from="gscam/camera_info" to="ptz_camera/camera_info"/>
+    <remap from="gscam/image_raw" to="ptz_camera/image_raw"/>
+  </node>
+
+  <node ns="ptz_camera" name="image_proc" pkg="image_proc" type="image_proc"/>
+</launch>
