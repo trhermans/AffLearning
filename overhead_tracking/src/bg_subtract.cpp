@@ -33,7 +33,7 @@
  *********************************************************************/
 #include <ros/ros.h>
 #include "bg_subtract.h"
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace cv;
 using std::vector;
@@ -150,7 +150,7 @@ const char BgSubtractGUI::ERASE_BG_KEY = 'e';
 const char BgSubtractGUI::ACTIVE_DISPLAY_KEY = 'a';
 
 BgSubtractGUI::BgSubtractGUI() :
-    diff_thresh_(0), active_display_(true)
+    diff_thresh_(30), active_display_(true)
 {
   raiseDisplay();
 }

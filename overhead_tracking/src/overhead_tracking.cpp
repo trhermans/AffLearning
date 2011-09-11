@@ -95,7 +95,7 @@ OverheadTracker::OverheadTracker(string window_name, BgSubtract* bg) :
     window_name_(window_name), drawing_boundary_(false),
     // Tracking and state parameters
     tracking_(false), initialized_(false), paused_(false),
-    min_contour_size_(0), run_count_(0), next_id_(0),
+    min_contour_size_(100), run_count_(0), next_id_(0),
     // Robot Orientation Stuff
     initializing_orientation_(false), orientation_offset_(0.0),
     finished_orientation_init_(false), swap_orientation_(false),
@@ -661,8 +661,7 @@ void OverheadTracker::onKeyCallback(char c)
         initializeOrientation();
       break;
     case CLEAR_WAYPOINT_KEY:
-      waypoints_.clear();
-      changed_waypoints_ = true;
+      clearWaypoints();
       break;
     case DRAW_BOUNDARY_KEY:
       if (drawing_boundary_)
@@ -748,6 +747,7 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
       {
         tracker->setRobotWaypoint(pt);
       }
+      break;
     // case CV_EVENT_LBUTTONDOWN:
     //   break;
     // case CV_EVENT_RBUTTONDOWN:
@@ -760,8 +760,11 @@ void OverheadTracker::onWindowClick(int event, int x, int y,
     //   break;
     // case CV_EVENT_MBUTTONUP:
     //   break;
-    // case CV_EVENT_RBUTTONDBLCLK:
-    //   break;
+    case CV_EVENT_RBUTTONDBLCLK:
+      // Clear the waypoints using double right click.
+      tracker->clearWaypoints();
+      break;
+
     // case CV_EVENT_MBUTTONDBLCLK:
     //   break;
     // case CV_EVENT_MOUSEMOVE:
@@ -844,14 +847,14 @@ CleanupObjectArray OverheadTracker::getCleanupObjects()
   for(unsigned int i = 0; i < tracked_objects_.size(); ++i)
   {
     CleanupObject obj;
-    // obj.pose.x = imgXtoWorldX(tracked_objects_[i].state.pose.x);
-    // obj.pose.y = imgYtoWorldY(tracked_objects_[i].state.pose.y);
-    // obj.change.x = imgXtoWorldX(tracked_objects_[i].state.change.x);
-    // obj.change.y = imgYtoWorldY(tracked_objects_[i].state.change.y);
-    obj.pose.x = tracked_objects_[i].state.pose.x;
-    obj.pose.y = tracked_objects_[i].state.pose.y;
-    obj.change.x = tracked_objects_[i].state.change.x;
-    obj.change.y = tracked_objects_[i].state.change.y;
+    obj.pose.x = imgXtoWorldX(tracked_objects_[i].state.pose.x);
+    obj.pose.y = imgYtoWorldY(tracked_objects_[i].state.pose.y);
+    obj.change.x = imgXtoWorldX(tracked_objects_[i].state.change.x);
+    obj.change.y = imgYtoWorldY(tracked_objects_[i].state.change.y);
+    // obj.pose.x = tracked_objects_[i].state.pose.x;
+    // obj.pose.y = tracked_objects_[i].state.pose.y;
+    // obj.change.x = tracked_objects_[i].state.change.x;
+    // obj.change.y = tracked_objects_[i].state.change.y;
     obj.object_id = tracked_objects_[i].state.object_id;
     cleanup_objs.objects.push_back(obj);
   }
@@ -867,10 +870,10 @@ CleanupObjectArray OverheadTracker::getCleanupObjects()
 Pose2D OverheadTracker::getRobotPose()
 {
   Pose2D world_pose;
-  //world_pose.x = imgXtoWorldX(tracked_robot_.state.pose.x);
-  //world_pose.y = imgYtoWorldY(tracked_robot_.state.pose.y);
-  world_pose.x = tracked_robot_.state.pose.x;
-  world_pose.y = tracked_robot_.state.pose.y;
+  world_pose.x = imgXtoWorldX(tracked_robot_.state.pose.x);
+  world_pose.y = imgYtoWorldY(tracked_robot_.state.pose.y);
+  // world_pose.x = tracked_robot_.state.pose.x;
+  // world_pose.y = tracked_robot_.state.pose.y;
   world_pose.theta = tracked_robot_.state.pose.theta;
 
   return world_pose;
@@ -885,8 +888,10 @@ CleanupZoneArray OverheadTracker::getCleanupZones()
     for (unsigned int j = 0; j < boundary_contours_[i].size(); ++j)
     {
       geometry_msgs::Point zone_point;
-      zone_point.x = boundary_contours_[i][j].x;
-      zone_point.y = boundary_contours_[i][j].y;
+      zone_point.x = imgXtoWorldX(boundary_contours_[i][j].x);
+      zone_point.y = imgYtoWorldY(boundary_contours_[i][j].y);
+      // zone_point.x = boundary_contours_[i][j].x;
+      // zone_point.y = boundary_contours_[i][j].y;
       zone.boundary.push_back(zone_point);
     }
     zones.zones.push_back(zone);
@@ -899,10 +904,10 @@ Pose2D OverheadTracker::getGoalPose()
   Pose2D goal_pose;
   if (waypoints_.size() > 0)
   {
-    // goal_pose.x = imgXtoWorldX(waypoints_[0].x);
-    // goal_pose.y = imgYtoWorldY(waypoints_[0].y);
-    goal_pose.x = waypoints_[0].x;
-    goal_pose.y = waypoints_[0].y;
+    goal_pose.x = imgXtoWorldX(waypoints_[0].x);
+    goal_pose.y = imgYtoWorldY(waypoints_[0].y);
+    // goal_pose.x = waypoints_[0].x;
+    // goal_pose.y = waypoints_[0].y;
     goal_pose.theta = tracked_robot_.state.pose.theta;
   }
   else

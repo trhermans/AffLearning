@@ -109,6 +109,11 @@ class OverheadTracker
   {
     return force_robot_goal_draw_;
   }
+  void clearWaypoints()
+  {
+    waypoints_.clear();
+    changed_waypoints_ = true;
+  }
 
   overhead_tracking::CleanupObjectArray getCleanupObjects();
   overhead_tracking::CleanupZoneArray getCleanupZones();

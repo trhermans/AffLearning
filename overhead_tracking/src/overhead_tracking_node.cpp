@@ -41,7 +41,17 @@
 #include "overhead_tracking/CleanupObjectArray.h"
 #include "overhead_tracking/CleanupObject.h"
 #include "overhead_tracking/CleanupZoneArray.h"
+#include "overhead_tracking/Pose2DStamped.h"
+#include "overhead_tracking/ClearData.h"
 #include "geometry_msgs/Pose2D.h"
+
+// #define DOWNSAMPLE_OVERHEAD_IMAGE
+
+using geometry_msgs::Pose2D;
+using overhead_tracking::Pose2DStamped;
+using overhead_tracking::CleanupObjectArray;
+using overhead_tracking::CleanupZoneArray;
+using overhead_tracking::ClearData;
 
 class OverheadTrackingNode
 {
@@ -52,12 +62,14 @@ class OverheadTrackingNode
   {
     image_sub_ = it_.subscribe("image_topic", 1,
                                &OverheadTrackingNode::imageCallback, this);
-    pose_pub_ = n_.advertise<geometry_msgs::Pose2D>("robot_pose", 1000);
-    object_pub_ = n_.advertise<overhead_tracking::CleanupObjectArray>(
-        "cleanup_objects", 1000);
-    goal_pub_ = n_.advertise<geometry_msgs::Pose2D>("goal_pose", 1000);
-    cleanup_zone_pub_ = n_.advertise<overhead_tracking::CleanupZoneArray>(
-        "cleanup_zones", 1000);
+    clear_goal_sub_ = n_.subscribe("clear_goal_pose", 1,
+                                   &OverheadTrackingNode::clearGoalCallback,
+                                   this);
+
+    pose_pub_ = n_.advertise<Pose2DStamped>("robot_pose", 1000);
+    object_pub_ = n_.advertise<CleanupObjectArray>("cleanup_objects", 1000);
+    goal_pub_ = n_.advertise<Pose2DStamped>("goal_pose", 1000);
+    cleanup_zone_pub_ = n_.advertise<CleanupZoneArray>("cleanup_zones", 1000);
   }
 
   // Publish and Subscribe methods
@@ -70,20 +82,17 @@ class OverheadTrackingNode
    */
   void imageCallback(const sensor_msgs::ImageConstPtr& msg_ptr)
   {
-    IplImage* fg_img = NULL;
-    try
-    {
-      fg_img = bridge_.imgMsgToCv(msg_ptr);
-    }
-    catch (sensor_msgs::CvBridgeException error)
-    {
-      ROS_ERROR("Error converting ROS image to IplImage");
-    }
+    cv::Mat fg_mat;
+    fg_mat = bridge_.imgMsgToCv(msg_ptr);
 
     // Save a copy of the image
-    cv::Mat fg_mat = fg_img;
+    // cv::Mat init_copy;
+#ifdef DOWNSAMPLE_OVERHEAD_IMAGE
+    fg_mat.copyTo(init_copy);
+    cv::pyrDown(init_copy, current_img_);
+#else
     fg_mat.copyTo(current_img_);
-
+#endif // DOWNSAMPLE_OVERHEAD_IMAGE
     bg_gui_.updateDisplay(current_img_);
     contours_ = bg_gui_.bg_sub_.getContours();
 
@@ -92,15 +101,51 @@ class OverheadTrackingNode
     publishData();
   }
 
+  void clearGoalCallback(const ClearData msg)
+  {
+    if (msg.clear)
+      tracker_.clearWaypoints();
+  }
+
   void publishData()
   {
-    pose_pub_.publish(tracker_.getRobotPose());
-    object_pub_.publish(tracker_.getCleanupObjects());
+    ros::Time pub_time = ros::Time::now();
+    Pose2D tracker_robot_pose;
+    tracker_robot_pose = tracker_.getRobotPose();
+
+    Pose2DStamped robot_pose;
+    robot_pose.header.stamp = pub_time;
+    robot_pose.pose.x = tracker_robot_pose.x;
+    robot_pose.pose.y = tracker_robot_pose.y;
+    robot_pose.pose.theta = tracker_robot_pose.theta;
+
+    pose_pub_.publish(robot_pose);
+
+    CleanupObjectArray cleanup_objs;
+    cleanup_objs = tracker_.getCleanupObjects();
+    cleanup_objs.header.stamp = pub_time;
+
+    object_pub_.publish(cleanup_objs);
+
     if (tracker_.newCleanupZone())
-      cleanup_zone_pub_.publish(tracker_.getCleanupZones());
+    {
+      CleanupZoneArray cleanup_zones;
+      cleanup_zones = tracker_.getCleanupZones();
+      cleanup_zones.header.stamp = pub_time;
+
+      cleanup_zone_pub_.publish(cleanup_zones);
+    }
     if (tracker_.newGoalPose())
     {
-      goal_pub_.publish(tracker_.getGoalPose());
+      Pose2D tracker_goal_pose = tracker_.getGoalPose();
+      Pose2DStamped goal_pose;
+
+      goal_pose.header.stamp = pub_time;
+      goal_pose.pose.x = tracker_goal_pose.x;
+      goal_pose.pose.y = tracker_goal_pose.y;
+      goal_pose.pose.theta = tracker_goal_pose.theta;
+
+      goal_pub_.publish(goal_pose);
     }
   }
 
@@ -117,6 +162,7 @@ class OverheadTrackingNode
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   sensor_msgs::CvBridge bridge_;
+  ros::Subscriber clear_goal_sub_;
 
   ros::Publisher pose_pub_, object_pub_, goal_pub_, cleanup_zone_pub_;
   BgSubtractGUI bg_gui_;
